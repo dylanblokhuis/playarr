@@ -7,7 +7,10 @@ edition = "2021"
 
 [dependencies]
 egui = "0.18"
-egui_glow = { version = "0.18", features = [ "winit" ] }
+egui_glow = { version = "0.18", features = [ "winit", "clipboard" ] }
 glow = "0.12.0"
 glutin = "0.28"
+libmpv = { git = "https://github.com/anlumo/libmpv-rs.git" }
+
+[target.'cfg(target_os = "windows")'.dependencies]
 libmpv = { git = "https://github.com/anlumo/libmpv-rs.git", features=["build_libmpv"] }

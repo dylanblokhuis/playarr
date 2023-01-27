@@ -1,3 +1,4 @@
+use egui_glow::EguiGlow;
 use egui_glow::glow::HasContext;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::ControlFlow;
@@ -5,10 +6,13 @@ use glutin::window::Window;
 use glutin::{ContextWrapper, PossiblyCurrent};
 use libmpv::{
     render::{OpenGLInitParams, RenderContext, RenderParam, RenderParamApiType},
-    FileState, Mpv,
+    Mpv,
 };
 use std::rc::Rc;
-use std::{env, ffi::c_void};
+use std::sync::{Arc, Mutex};
+use std::{ffi::c_void};
+
+mod ui;
 
 fn get_proc_address(ctx: &&ContextWrapper<PossiblyCurrent, Window>, name: &str) -> *mut c_void {
     ctx.get_proc_address(name) as *mut c_void
@@ -20,12 +24,13 @@ enum UserEvent {
     RedrawRequested,
 }
 
+
 fn main() {
     unsafe {
         let (gl, _, window, event_loop) = {
             let event_loop = glutin::event_loop::EventLoop::<UserEvent>::with_user_event();
             let window_builder = glutin::window::WindowBuilder::new()
-                .with_title("Hello triangle!")
+                .with_title("Playarr")
                 .with_inner_size(glutin::dpi::LogicalSize::new(1024.0, 768.0));
             let window = glutin::ContextBuilder::new()
                 .with_vsync(true)
@@ -42,6 +47,7 @@ fn main() {
         };
 
         let mut mpv = Mpv::new().expect("Error while creating MPV");
+
         let mut render_context = RenderContext::new(
             mpv.ctx.as_mut(),
             vec![
@@ -64,16 +70,13 @@ fn main() {
                 .send_event(UserEvent::MpvEventAvailable)
                 .unwrap();
         });
-        let path = env::args()
-            .nth(1)
-            .expect("Provide a filename as first argument");
-        let render_context = Some(render_context);
-        mpv.playlist_load_files(&[(&path, FileState::AppendPlay, None)])
-            .unwrap();
+        
         mpv.set_property("video-timing-offset", 0).unwrap();
 
         let gl = Rc::new(gl);
-        let mut egui_glow = egui_glow::winit::EguiGlow::new(window.window(), gl.clone());
+        let mut egui_glow = EguiGlow::new(&window.window(), gl.clone());
+        let mpv = Arc::new(Mutex::new(mpv));
+        let mut app = ui::App::new(mpv.clone());
 
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Wait;
@@ -97,38 +100,40 @@ fn main() {
                     window.window().request_redraw();
                 }
                 Event::RedrawRequested(_) => {
-                    let egui_repaint = egui_glow.run(window.window(), |egui_ctx| {
-                        egui::Area::new("my_area")
-                            .fixed_pos(egui::pos2(100.0, 100.0))
-                            .show(egui_ctx, |ui| {
-                                egui::Frame::none()
-                                    .fill(egui::Color32::BLACK)
-                                    .inner_margin(10.0)
-                                    .outer_margin(10.0)
-                                    .show(ui, |ui| {
-                                        ui.heading("MPV Overlay");
-                                        if ui.button("Quit").clicked() {
-                                            println!("clicked quit");
-                                            *control_flow = ControlFlow::Exit;
-                                        }
-                                    })
-                            });
+                    egui_glow.run(window.window(), |egui_ctx| {
+                        egui::Area::new("my_aera").fixed_pos(egui::pos2(32.0, 32.0)).show(egui_ctx, |ui| {                            
+                            app.render(ui)
+                        });
                     });
 
-                    if let Some(render_context) = &render_context {
-                        let size = window.window().inner_size();
-                        render_context
-                            .render::<Window>(0, size.width as _, size.height as _, true)
-                            .expect("Failed to draw on glutin window");
-                        egui_glow.paint(window.window());
-                        gl.disable(glow::FRAMEBUFFER_SRGB);
-                        gl.disable(glow::BLEND);
-                        window.swap_buffers().unwrap();
-                    } else if egui_repaint {
-                        egui_glow.paint(window.window());
-                        window.swap_buffers().unwrap();
-                    }
+                    let size = window.window().inner_size();
+                    render_context
+                        .render::<Window>(0, size.width as _, size.height as _, true)
+                        .expect("Failed to draw on glutin window");
+                    egui_glow.paint(window.window());
+                    gl.disable(glow::FRAMEBUFFER_SRGB);
+                    gl.disable(glow::BLEND);
+                    window.swap_buffers().unwrap();
                 }
+                Event::UserEvent(UserEvent::RedrawRequested) => {
+                    window.window().request_redraw();
+                }
+                Event::UserEvent(UserEvent::MpvEventAvailable) => loop {
+                    match mpv.lock().unwrap().event_context_mut().wait_event(0.0) {                       
+                        Some(Ok(mpv_event)) => {
+                            eprintln!("MPV event: {:?}", mpv_event);
+                        }
+                        Some(Err(err)) => {
+                            eprintln!("MPV Error: {}", err);
+                            *control_flow = ControlFlow::Exit;
+                            break;
+                        }
+                        None => {
+                            *control_flow = ControlFlow::Wait;
+                            break;
+                        }
+                    }
+                },
 
                 _ => (),
             }
