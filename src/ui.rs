@@ -1,17 +1,16 @@
 use std::sync::{Arc, Mutex};
 
 use egui::Ui;
-use libmpv::{Mpv, FileState};
+use libmpv::{FileState, Mpv};
 
 pub struct App {
     mpv: Arc<Mutex<Mpv>>,
     filepath: String,
-
 }
 
 impl App {
-    pub fn new(mpv:Arc<Mutex<Mpv>>) -> Self {
-        Self { mpv: mpv, filepath: String::new() }
+    pub fn new(mpv: Arc<Mutex<Mpv>>) -> Self {
+        Self { mpv, filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4") }
     }
 
     pub fn render(&mut self, ui: &mut Ui) -> egui::InnerResponse<()> {
@@ -25,10 +24,12 @@ impl App {
                 ui.text_edit_singleline(&mut self.filepath);
 
                 if ui.button("Play").clicked() {
-                  self.mpv.lock().unwrap().playlist_load_files(&[(&self.filepath, FileState::AppendPlay, None)])
-                  .unwrap();
+                    self.mpv
+                        .lock()
+                        .unwrap()
+                        .playlist_load_files(&[(&self.filepath, FileState::AppendPlay, None)])
+                        .unwrap();
                 }
-                
 
                 if ui.button("Pause").clicked() {
                     self.mpv.lock().unwrap().pause().unwrap();
