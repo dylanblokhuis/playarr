@@ -628,8 +628,8 @@ dependencies = [
 
 [[package]]
 name = "libmpv"
-version = "3.0.3"
-source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#5f4ff0a76b17cd66b657e95bd9927c7d6df062b8"
+version = "3.0.4"
+source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#88330379f69e0b18a3e0334008b006b137dc9a88"
 dependencies = [
  "libmpv-sys",
 ]
@@ -637,7 +637,7 @@ dependencies = [
 [[package]]
 name = "libmpv-sys"
 version = "4.0.1"
-source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#5f4ff0a76b17cd66b657e95bd9927c7d6df062b8"
+source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#88330379f69e0b18a3e0334008b006b137dc9a88"
 
 [[package]]
 name = "lock_api"
@@ -961,6 +961,7 @@ dependencies = [
  "glow 0.12.0",
  "glutin",
  "libmpv",
+ "libmpv-sys",
 ]
 
 [[package]]

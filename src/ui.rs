@@ -1,8 +1,10 @@
 use std::sync::{Arc, Mutex, RwLock};
 
-use egui::Ui;
 use egui::{FontFamily, FontId, RichText, TextStyle};
+use egui::{Ui, Vec2};
 use libmpv::{FileState, Mpv};
+
+use crate::widgets;
 
 fn configure_text_styles(ctx: &egui::Context) {
     let mut fonts = egui::FontDefinitions::default();
@@ -51,6 +53,10 @@ fn configure_text_styles(ctx: &egui::Context) {
             FontId::new(18.0, FontFamily::Name("Inter-SemiBold".into())),
         ),
         (TextStyle::Small, FontId::new(8.0, FontFamily::Proportional)),
+        (
+            TextStyle::Monospace,
+            FontId::new(16.0, FontFamily::Proportional),
+        ),
     ]
     .into();
 
@@ -91,7 +97,8 @@ pub struct App {
     mpv: Arc<RwLock<Mpv>>,
     filepath: String,
     pub playback: bool,
-    is_paused: bool,
+    pub is_paused: bool,
+    pub seek_pos: f64,
 }
 
 impl App {
@@ -100,25 +107,59 @@ impl App {
         configure_text_styles(ctx);
         configure_default_button(ctx);
 
-        Self { mpv, filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"), playback: false, is_paused: false }
+        Self { mpv, filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"), playback: false, is_paused: false, seek_pos: 0.0 }
     }
 
-    pub fn player_ui(&mut self, ui: &mut Ui) {
-        if ui
-            .button(if self.is_paused { "Play" } else { "Pause" })
-            .clicked()
-        {
-            if self.is_paused {
-                self.mpv.read().unwrap().unpause().unwrap();
-            } else {
-                self.mpv.read().unwrap().pause().unwrap();
-            }
-            self.is_paused = !self.is_paused;
-        }
+    pub fn player_ui(&mut self, ctx: &egui::Context) {
+        egui::Area::new("controls")
+            .anchor(egui::Align2::LEFT_BOTTOM, Vec2::new(0.0, 0.0))
+            .show(ctx, |ui| {
+                ui.vertical(|ui| {
+                    let duration = self
+                        .mpv
+                        .read()
+                        .unwrap()
+                        .get_property::<i64>("duration")
+                        .unwrap_or(0);
 
-        if ui.button("Stop").clicked() {
-            self.mpv.read().unwrap().playlist_remove_current().unwrap();
-        }
+                    let time_pos = self
+                        .mpv
+                        .read()
+                        .unwrap()
+                        .get_property::<i64>("time-pos")
+                        .unwrap_or(0);
+
+                    let size = 1024.0;
+                    let playbar =
+                        ui.add(widgets::playbar::Playbar::new(1024.0, duration, time_pos));
+
+                    if playbar.clicked() {
+                        let pos = playbar.interact_pointer_pos().unwrap();
+                        let seek_to = (pos.x) / size * duration as f32;
+                        self.mpv
+                            .read()
+                            .unwrap()
+                            .seek_absolute(seek_to as f64)
+                            .unwrap();
+                    }
+
+                    if ui
+                        .button(if self.is_paused { "Play" } else { "Pause" })
+                        .clicked()
+                    {
+                        if self.is_paused {
+                            self.mpv.read().unwrap().unpause().unwrap();
+                        } else {
+                            self.mpv.read().unwrap().pause().unwrap();
+                        }
+                        self.is_paused = !self.is_paused;
+                    }
+
+                    if ui.button("Stop").clicked() {
+                        self.mpv.read().unwrap().playlist_remove_current().unwrap();
+                    }
+                });
+            });
     }
 
     pub fn render(&mut self, ctx: &egui::Context) {
@@ -134,7 +175,7 @@ impl App {
                     .outer_margin(0.0)
                     .show(ui, |ui| {
                         if self.playback {
-                            self.player_ui(ui);
+                            self.player_ui(ctx);
                             return;
                         }
 

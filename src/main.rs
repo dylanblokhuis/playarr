@@ -7,10 +7,12 @@ use glutin::{ContextWrapper, PossiblyCurrent};
 use libmpv::{render::RenderContext, Mpv};
 use std::ffi::{c_char, c_void, CStr};
 use std::mem::transmute;
+use std::ptr::null;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
 mod ui;
+mod widgets;
 
 unsafe extern "C" fn get_proc_addr(ctx: *mut c_void, name: *const c_char) -> *mut c_void {
     let rust_name = CStr::from_ptr(name).to_str().unwrap();
@@ -32,7 +34,7 @@ fn main() {
             let event_loop = glutin::event_loop::EventLoop::<UserEvent>::with_user_event();
             let window_builder = glutin::window::WindowBuilder::new()
                 .with_title("Playarr")
-                .with_inner_size(glutin::dpi::LogicalSize::new(1024.0, 768.0));
+                .with_inner_size(glutin::dpi::LogicalSize::new(1024.0, 720.0));
             let window = glutin::ContextBuilder::new()
                 .with_vsync(true)
                 .with_hardware_acceleration(Some(true))
@@ -48,11 +50,11 @@ fn main() {
         };
 
         let mut mpv = Mpv::new().expect("Error while creating MPV");
-
         let mut render_context = RenderContext::new(mpv.ctx.as_mut(), &window, get_proc_addr)
             .expect("Failed creating render context");
 
         mpv.event_context_mut().disable_deprecated_events().unwrap();
+        // mpv.event_context_mut().observe_property("se", format, id)
         let event_proxy = event_loop.create_proxy();
         render_context.set_update_callback(move || {
             event_proxy.send_event(UserEvent::RedrawRequested).unwrap();
@@ -115,13 +117,12 @@ fn main() {
 
                             match mpv_event {
                                 libmpv::events::Event::PlaybackRestart => {
-                                    app.playback = true
+                                    app.playback = true;
+                                    app.is_paused = false;
                                 }
                                 libmpv::events::Event::EndFile(_) => {
-                                    app.playback = false
-                                },
-                                libmpv::events::Event::PropertyChange { name, change, reply_userdata } => {
-                                    println!("Property change: {name:?} {change:?} {reply_userdata:?}");
+                                    app.playback = false;
+                                    app.is_paused = false;
                                 }
                                 _ => (),
                             }
