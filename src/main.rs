@@ -1,21 +1,23 @@
-use egui_glow::EguiGlow;
 use egui_glow::glow::HasContext;
+use egui_glow::EguiGlow;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::ControlFlow;
 use glutin::window::Window;
 use glutin::{ContextWrapper, PossiblyCurrent};
-use libmpv::{
-    render::{OpenGLInitParams, RenderContext, RenderParam, RenderParamApiType},
-    Mpv,
-};
+use libmpv::{render::RenderContext, Mpv};
+use std::ffi::{c_char, c_void, CStr};
+use std::mem::transmute;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use std::{ffi::c_void};
 
 mod ui;
 
-fn get_proc_address(ctx: &&ContextWrapper<PossiblyCurrent, Window>, name: &str) -> *mut c_void {
-    ctx.get_proc_address(name) as *mut c_void
+unsafe extern "C" fn get_proc_addr(ctx: *mut c_void, name: *const c_char) -> *mut c_void {
+    let rust_name = CStr::from_ptr(name).to_str().unwrap();
+    #[allow(clippy::transmute_ptr_to_ref)]
+    let window: &&ContextWrapper<PossiblyCurrent, Window> = transmute(ctx);
+
+    window.get_proc_address(rust_name) as *mut _
 }
 
 #[derive(Debug)]
@@ -23,7 +25,6 @@ enum UserEvent {
     MpvEventAvailable,
     RedrawRequested,
 }
-
 
 fn main() {
     unsafe {
@@ -48,17 +49,8 @@ fn main() {
 
         let mut mpv = Mpv::new().expect("Error while creating MPV");
 
-        let mut render_context = RenderContext::new(
-            mpv.ctx.as_mut(),
-            vec![
-                RenderParam::ApiType(RenderParamApiType::OpenGl),
-                RenderParam::InitParams(OpenGLInitParams {
-                    get_proc_address,
-                    ctx: &window,
-                }),
-            ],
-        )
-        .expect("Failed creating render context");
+        let mut render_context = RenderContext::new(mpv.ctx.as_mut(), &window, get_proc_addr)
+            .expect("Failed creating render context");
         mpv.event_context_mut().disable_deprecated_events().unwrap();
         let event_proxy = event_loop.create_proxy();
         render_context.set_update_callback(move || {
@@ -70,11 +62,11 @@ fn main() {
                 .send_event(UserEvent::MpvEventAvailable)
                 .unwrap();
         });
-        
+
         mpv.set_property("video-timing-offset", 0).unwrap();
 
         let gl = Rc::new(gl);
-        let mut egui_glow = EguiGlow::new(&window.window(), gl.clone());
+        let mut egui_glow = EguiGlow::new(window.window(), gl.clone());
         let mpv = Arc::new(Mutex::new(mpv));
         let mut app = ui::App::new(mpv.clone());
 
@@ -101,14 +93,14 @@ fn main() {
                 }
                 Event::RedrawRequested(_) => {
                     egui_glow.run(window.window(), |egui_ctx| {
-                        egui::Area::new("my_aera").fixed_pos(egui::pos2(32.0, 32.0)).show(egui_ctx, |ui| {                            
-                            app.render(ui)
-                        });
+                        egui::Area::new("my_aera")
+                            .fixed_pos(egui::pos2(32.0, 32.0))
+                            .show(egui_ctx, |ui| app.render(ui));
                     });
 
                     let size = window.window().inner_size();
                     render_context
-                        .render::<Window>(0, size.width as _, size.height as _, true)
+                        .render(size.width as i32, size.height as i32)
                         .expect("Failed to draw on glutin window");
                     egui_glow.paint(window.window());
                     gl.disable(glow::FRAMEBUFFER_SRGB);
@@ -116,15 +108,16 @@ fn main() {
                     window.swap_buffers().unwrap();
                 }
                 Event::UserEvent(UserEvent::RedrawRequested) => {
+                    render_context.update();
                     window.window().request_redraw();
                 }
                 Event::UserEvent(UserEvent::MpvEventAvailable) => loop {
-                    match mpv.lock().unwrap().event_context_mut().wait_event(0.0) {                       
+                    match mpv.lock().unwrap().event_context_mut().wait_event(0.0) {
                         Some(Ok(mpv_event)) => {
-                            eprintln!("MPV event: {:?}", mpv_event);
+                            println!("MPV event: {mpv_event:?}");
                         }
                         Some(Err(err)) => {
-                            eprintln!("MPV Error: {}", err);
+                            println!("MPV Error: {err}");
                             *control_flow = ControlFlow::Exit;
                             break;
                         }
