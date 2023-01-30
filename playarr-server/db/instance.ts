@@ -14,57 +14,7 @@ import * as path from "std/path/mod.ts";
 
 const sqlite = new SqliteDatabase("playarr.db");
 
-interface PostTable {
-	id: Generated<number>;
-	title: string;
-	status: "trash" | "draft" | "published";
-	slug: string;
-	post_type_id: number;
-	created_at: ColumnType<Date, string | undefined, never>;
-	updated_at: ColumnType<Date, string | undefined, never>;
-}
-
-interface PostTypeTable {
-	id: Generated<number>;
-	name: string;
-	slug: string;
-	path_prefix: string | null;
-}
-
-interface FieldGroupTable {
-	id: Generated<number>;
-	name: string;
-	created_at: ColumnType<Date, string | undefined, never>;
-}
-
-interface FieldGroupOnPostTypeTable {
-	field_group_id: number;
-	post_type_id: number;
-}
-
-interface FieldTypeTable {
-	id: Generated<number>;
-	name: string;
-}
-
-export interface FieldTable {
-	id: Generated<number>;
-	name: string;
-	slug: string;
-	type_id: number;
-	field_group_id: number;
-	created_at: ColumnType<Date, string | undefined, never>;
-}
-
-interface PostFieldTable {
-	post_id: number;
-	field_id: number;
-	value: string;
-	created_at: ColumnType<Date, string | undefined, never>;
-	updated_at: ColumnType<Date, string | undefined, never>;
-}
-
-export type Roles = "admin" | "editor" | "subscriber";
+export type Roles = "admin" | "regular";
 
 interface UserTable {
 	id: Generated<number>;
@@ -77,13 +27,6 @@ interface UserTable {
 }
 
 export interface Database {
-	post: PostTable;
-	post_type: PostTypeTable;
-	field_group: FieldGroupTable;
-	field_group_on_post_type: FieldGroupOnPostTypeTable;
-	field_type: FieldTypeTable;
-	field: FieldTable;
-	post_field: PostFieldTable;
 	user: UserTable;
 }
 
