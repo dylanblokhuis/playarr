@@ -1,0 +1,11 @@
+{
+  "imports": {
+    "std/": "https://deno.land/std@0.174.0/",
+    "oak": "https://deno.land/x/oak@v11.1.0/mod.ts",
+    "sqlite": "https://deno.land/x/sqlite3@0.7.3/mod.ts",
+    "kysely": "npm:kysely@0.23.4"
+  },
+  "tasks": {
+    "dev": "deno run --watch main.ts"
+  }
+}
