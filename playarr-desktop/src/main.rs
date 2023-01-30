@@ -35,7 +35,7 @@ impl GlutinWindowContext {
 
         // try egl and fallback to windows wgl. Windows is the only platform that *requires* window handle to create display.
         #[cfg(target_os = "windows")]
-        let preference = glutin::display::DisplayApiPreference::EglThenWgl(Some(window_handle));
+        let preference = glutin::display::DisplayApiPreference::EglThenWgl(Some(raw_window_handle));
         // try egl and fallback to x11 glx
         #[cfg(target_os = "linux")]
         let preference = glutin::display::DisplayApiPreference::EglThenGlx(Box::new(
@@ -123,9 +123,7 @@ impl GlutinWindowContext {
     }
 }
 
-fn create_display(
-    event_loop: &EventLoop<UserEvent>,
-) -> (GlutinWindowContext, glow::Context) {
+fn create_display(event_loop: &EventLoop<UserEvent>) -> (GlutinWindowContext, glow::Context) {
     let winit_window = winit::window::WindowBuilder::new()
         .with_resizable(true)
         .with_inner_size(winit::dpi::LogicalSize {
@@ -239,10 +237,7 @@ fn main() {
 
                 if let WindowEvent::Resized(physical_size) = &event {
                     gl_window.resize(*physical_size);
-                } else if let WindowEvent::ScaleFactorChanged {
-                    new_inner_size, ..
-                } = &event
-                {
+                } else if let WindowEvent::ScaleFactorChanged { new_inner_size, .. } = &event {
                     gl_window.resize(**new_inner_size);
                 }
 
