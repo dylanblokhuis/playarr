@@ -9,7 +9,7 @@ import {
 	SqliteQueryCompiler,
 } from "kysely";
 import {Database as SqliteDatabase} from "sqlite";
-import {SqliteDriver} from "./db.driver.ts";
+import {SqliteDriver} from "./driver.ts";
 import * as path from "std/path/mod.ts";
 
 const sqlite = new SqliteDatabase("playarr.db");
