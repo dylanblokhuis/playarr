@@ -1,7 +1,7 @@
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 
-use egui::{FontFamily, FontId, RichText, TextStyle};
-use egui::{Ui, Vec2};
+use egui::Vec2;
+use egui::{FontFamily, FontId, TextStyle};
 use libmpv::{FileState, Mpv};
 
 use crate::widgets;
