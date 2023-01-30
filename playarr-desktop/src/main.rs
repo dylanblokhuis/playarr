@@ -248,7 +248,6 @@ fn main() {
                 }
             }
             Event::UserEvent(UserEvent::RedrawRequested) => {
-                println!("Redraw requested");
                 render_context.update();
                 gl_window.window().request_redraw();
             }

@@ -621,8 +621,8 @@ dependencies = [
 
 [[package]]
 name = "libmpv"
-version = "3.0.4"
-source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#88330379f69e0b18a3e0334008b006b137dc9a88"
+version = "3.0.5"
+source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#9c06d74a08200842110821091e1a909af0f06bff"
 dependencies = [
  "libmpv-sys",
 ]
@@ -630,7 +630,7 @@ dependencies = [
 [[package]]
 name = "libmpv-sys"
 version = "4.0.1"
-source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#88330379f69e0b18a3e0334008b006b137dc9a88"
+source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#9c06d74a08200842110821091e1a909af0f06bff"
 
 [[package]]
 name = "lock_api"
