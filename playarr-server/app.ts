@@ -1,16 +1,7 @@
 import {Application, Router, send} from "oak";
 import db, {migrate} from "./db/instance.ts";
 
-// migrate().then(() => {
-// 	db
-// 		.insertInto("user")
-// 		.values({name: "jari", email: "jari@kruitbos.dev", password: "pog", role: "admin"})
-// 		.returningAll()
-// 		.execute()
-// 		.then((result) => {
-// 			console.log(result)
-// 		})
-// })
+migrate();
 
 const router = new Router();
 router
