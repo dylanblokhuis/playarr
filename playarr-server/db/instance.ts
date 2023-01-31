@@ -53,7 +53,7 @@ export async function migrate() {
 							for await (const migration of migrationFiles) {
 								const {up, down} = await import(
 									path.join(migrationsDirectory, `./${migration.name}`)
-								);
+									);
 
 								migrations[migration.name] = {
 									up,
@@ -62,35 +62,15 @@ export async function migrate() {
 							}
 						}).catch(() => {
 							// No migrations found, but let's make the console happy
-						})
+						});
 					}
 				}
-				console.log(migrations)
-				console.log("return")
+
 				return migrations;
-				// const migrationDirPath = path.join(
-				// 	Deno.cwd(),
-				// 	"./db/migrations",
-				// );
-				//
-				// const migrationFiles = await Deno.readDir(migrationDirPath);
-				// const migrations: Record<string, Migration> = {};
-				//
-				// for await (const migration of migrationFiles) {
-				// 	const {up, down} = await import(
-				// 		path.join(migrationDirPath, `./${migration.name}`)
-				// 	);
-				//
-				// 	migrations[migration.name] = {
-				// 		up,
-				// 		down,
-				// 	};
-				// }
-				//
-				// return migrations;
 			},
 		},
 	});
+
 	const {error, results} = await migrator.migrateToLatest();
 	if (results && results.length > 0) {
 		console.log(results);
