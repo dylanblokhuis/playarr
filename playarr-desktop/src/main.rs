@@ -217,7 +217,6 @@ fn main() {
                 render_context
                     .render(size.width as i32, size.height as i32)
                     .expect("Failed to draw on glutin window");
-
                 egui_glow.paint(gl_window.window());
 
                 // draw things on top of egui here
@@ -241,8 +240,11 @@ fn main() {
                     gl_window.resize(**new_inner_size);
                 }
 
-                let event_response = egui_glow.on_event(&event);
+                if app.playback {
+                    app.handle_player_keyboard_events(&event);
+                }
 
+                let event_response = egui_glow.on_event(&event);
                 if event_response.repaint {
                     gl_window.window().request_redraw();
                 }
