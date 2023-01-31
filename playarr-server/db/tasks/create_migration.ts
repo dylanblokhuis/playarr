@@ -1,4 +1,9 @@
-const template = `import { Kysely, sql } from "kysely";
+// Some blacklisted apps, to make sure we are not getting any migrations here
+const appsBlacklist = ["db"];
+
+const template = `/* This file has been generated with "dano task create_migration" */
+
+import { Kysely, sql } from "kysely";
 import { Database } from "../../../db/instance.ts";
 
 export async function up(db: Kysely<Database>): Promise<void> {
@@ -69,8 +74,13 @@ if (Deno.args.length < 2) {
 const app = Deno.args[0];
 const name = Deno.args[1];
 
+if (appsBlacklist.includes(name)) {
+	console.error(`Could not create migration for ${app}: app has been blacklisted`);
+	Deno.exit(1);
+}
+
 createMigration(app, name).then((migration) => {
-	console.log(`Created migration for ${app} successfully! ${migration.name} [${migration.path}]`);
+	console.log(`Created migration for ${app} successfully! ${migration.path}`);
 }).catch((error) => {
 	console.error(`Could not create migration for ${app}: ${error}`);
 });
