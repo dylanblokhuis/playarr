@@ -1,9 +1,9 @@
 import {Migration, Migrator} from "kysely";
 import * as path from "std/path/mod.ts";
 
-import db from "./instance.ts";
+import db from "../instance.ts";
 
-export async function migrate() {
+async function migrate() {
 	const migrator = new Migrator({
 		db: db,
 		provider: {
