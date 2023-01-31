@@ -4,7 +4,7 @@ import configRouter from "config/router.ts";
 const app = new Application();
 const routers = [
 	configRouter
-]
+];
 
 for (const router in routers) {
 	app.use(router.routes());

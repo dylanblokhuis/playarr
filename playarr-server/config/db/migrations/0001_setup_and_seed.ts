@@ -1,5 +1,5 @@
-import { Kysely, sql } from "kysely";
-import { Database } from "../../../db/instance.ts";
+import {Kysely, sql} from "kysely";
+import {Database} from "../../../db/instance.ts";
 
 export async function up(db: Kysely<Database>): Promise<void> {
 	await db.schema
