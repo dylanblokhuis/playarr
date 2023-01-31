@@ -9,6 +9,6 @@
     "dev": "deno run --watch main.ts",
     "migrate": "deno run --allow-env --allow-read --allow-ffi --unstable tasks/migrate.ts",
     "create_migration": "deno run --allow-read --allow-write tasks/create_migration.ts",
-    "create_app": "deno run --allow-read allow-write tasks/create_app.ts"
+    "create_package": "deno run --allow-read --allow-write --allow-run tasks/create_package.ts"
   }
 }

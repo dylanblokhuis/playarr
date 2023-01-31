@@ -1,5 +1,5 @@
-// Some blacklisted apps, to make sure we are not getting any migrations here
-const appsBlacklist = ["db"];
+// Some blacklisted package names, to make sure we are not getting any migrations here
+const packagesBlacklist = ["db"];
 
 const template = `/* This file has been generated with "dano task create_migration" */
 
@@ -33,11 +33,11 @@ function getMigrationName(name: string, version: number): string {
 	return `${v}_${snake_case}.ts`;
 }
 
-async function createMigration(app: string, name: string): Promise<{name: string, path: string}> {
+async function createMigration(packageName: string, migrationName: string): Promise<string> {
 	const root = Deno.cwd();
-	const path = `${root}/${app}`;
+	const path = `${root}/${packageName}`;
 
-	// Check if the folder exists
+	// Check if the package exists
 	const migration = await Deno.stat(path).then(async () => {
 		// Create a migrations' folder, will succeed silently if already exists thanks to "recursive"
 		const migrationsPath = `${path}/db/migrations`;
@@ -48,39 +48,32 @@ async function createMigration(app: string, name: string): Promise<{name: string
 			version++;
 		}
 
-		const migrationName = getMigrationName(name, version);
-		console.log(version, migrationName);
-
-		const fullPath = `${migrationsPath}/${migrationName}`;
-		return {
-			name: migrationName,
-			path: fullPath
-		}
-
+		const name = getMigrationName(migrationName, version);
+		return `${migrationsPath}/${name}`
 	}).catch(() => {
-		throw new Error(`Could not find app '${app}'`);
+		throw new Error(`Could not find package '${packageName}'`);
 	});
 
-	await Deno.writeTextFile(migration.path, template);
+	await Deno.writeTextFile(migration, template);
 	return migration;
 }
 
 
 if (Deno.args.length < 2) {
-	console.log("Usage: deno task create_migration <app> <migration_name>");
+	console.log("Usage: deno task create_migration <package> <migration_name>");
 	Deno.exit(1);
 }
 
-const app = Deno.args[0];
-const name = Deno.args[1];
+const packageName = Deno.args[0];
+const migrationName = Deno.args[1];
 
-if (appsBlacklist.includes(name)) {
-	console.error(`Could not create migration for ${app}: app has been blacklisted`);
+if (packagesBlacklist.includes(migrationName)) {
+	console.error(`Could not create migration for ${packageName}: package has been blacklisted`);
 	Deno.exit(1);
 }
 
-createMigration(app, name).then((migration) => {
-	console.log(`Created migration for ${app} successfully! ${migration.path}`);
+createMigration(packageName, migrationName).then((migration) => {
+	console.log(`Created migration for ${packageName} successfully! ${migration}`);
 }).catch((error) => {
-	console.error(`Could not create migration for ${app}: ${error}`);
+	console.error(`Could not create migration for ${packageName}: ${error}`);
 });
