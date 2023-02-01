@@ -1,3 +1,6 @@
+use std::time::Duration;
+
+use chrono::{format::strftime, DateTime, Local};
 use egui::*;
 
 pub struct Playbar {
@@ -34,19 +37,15 @@ impl Widget for Playbar {
         if ui.is_rect_visible(response.rect) {
             let stroke = ui.visuals().widgets.active.bg_stroke;
             let painter = ui.painter();
-            // painter.text(
-            //     Pos2::new(1.0, 10.0),
-            //     Align2::RIGHT_BOTTOM,
-            //     "00:00",
-            //     FontId::proportional(16.0),
-            //     Color32::from_rgb(255, 255, 255),
-            // );
+
+            // paint background
             painter.hline(
                 rect.x_range(),
                 painter.round_to_pixel(rect.center().y),
                 Stroke::new(height, Color32::from_rgb(0, 0, 0)),
             );
 
+            // paint seekable ranges
             for (start, end) in seekable_ranges {
                 painter.hline(
                     start as f32 / duration as f32 * rect.width()
@@ -65,12 +64,49 @@ impl Widget for Playbar {
             }
 
             // paint current progress
+            let end_pos_line = pos as f32 / duration as f32 * rect.width();
             painter.hline(
-                0.0..=pos as f32 / duration as f32 * rect.width(),
+                0.0..=end_pos_line,
                 painter.round_to_pixel(rect.center().y),
                 Stroke::new(height, stroke.color),
             );
+
+            // circle to show there's handle
+            if response.hovered() || response.dragged() {
+                painter.circle_filled(
+                    Pos2::new(end_pos_line, painter.round_to_pixel(rect.center().y)),
+                    7.5,
+                    Color32::WHITE,
+                );
+            }
+
+            // point of seeking text
+            if response.hovered() && response.hover_pos().is_some() {
+                let hover_pos = response.hover_pos().unwrap().x;
+                let percentage = hover_pos / rect.width();
+                let duration = duration * percentage as f64;
+
+                // response.add(|ui: &mut Ui| {
+                //     let (rect, resp) = ui.allocate_at_least(Vec2::new(50.0, 10.0), Sense::hover());
+
+                //     resp
+                // });
+
+                painter.text(
+                    Pos2::new(hover_pos, painter.round_to_pixel(rect.top() - 15.0)),
+                    Align2::CENTER_CENTER,
+                    print_seconds_nice(duration),
+                    FontId::proportional(16.0),
+                    Color32::WHITE,
+                );
+            }
         }
         response
     }
+}
+
+fn print_seconds_nice(seconds: f64) -> String {
+    let duration = chrono::Duration::from_std(Duration::from_secs(seconds as u64)).unwrap();
+    let seconds_padded = format!("{:02}", duration.num_seconds() % 60);
+    format!("{}:{}", duration.num_minutes(), seconds_padded)
 }
