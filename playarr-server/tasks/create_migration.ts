@@ -7,7 +7,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
 	// ...
 }
 
-export async function down(db: Kysely<unknown>): Promise<void> {
+export async function down(db: Kysely<Database>): Promise<void> {
 	// ...
 }
 `;

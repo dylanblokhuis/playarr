@@ -1,9 +1,9 @@
 import {Router} from "oak";
 
-const router = new Router();
-router
+const configRouter = new Router();
+configRouter
 	.get("/", ({response}) => {
 		response.body = "Hello world!";
 	});
 
-export default router as configRouter;
+export default configRouter;
