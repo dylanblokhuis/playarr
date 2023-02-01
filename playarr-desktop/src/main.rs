@@ -1,10 +1,10 @@
 use egui_glow::egui_winit::winit::event::{Event, WindowEvent};
 use egui_glow::egui_winit::winit::event_loop::{ControlFlow, EventLoop};
 
+use libmpv::Format;
 use libmpv::{render::RenderContext, Mpv};
 use std::ffi::{c_char, c_void, CStr};
 use std::mem::transmute;
-use std::sync::{Arc, RwLock};
 
 mod ui;
 mod widgets;
@@ -158,8 +158,8 @@ unsafe extern "C" fn get_proc_addr(ctx: *mut c_void, name: *const c_char) -> *mu
 
 #[derive(Debug)]
 enum UserEvent {
-    MpvEventAvailable,
     RedrawRequested,
+    MpvEventAvailable,
 }
 
 fn main() {
@@ -171,29 +171,43 @@ fn main() {
     let mut egui_glow = egui_glow::EguiGlow::new(&event_loop, gl.clone(), None);
 
     let mut mpv = Mpv::new().expect("Error while creating MPV");
+    mpv.set_property("video-timing-offset", 0).unwrap();
+
     let mut render_context =
         RenderContext::new(unsafe { mpv.ctx.as_mut() }, &gl_window, get_proc_addr)
             .expect("Failed creating render context");
-    mpv.event_context_mut().disable_deprecated_events().unwrap();
     let event_proxy = event_loop.create_proxy();
     render_context.set_update_callback(move || {
         event_proxy.send_event(UserEvent::RedrawRequested).unwrap();
     });
+
+    // let mpv = Arc::new(RwLock::new(mpv));
+    let mut app = ui::App::new(&egui_glow.egui_ctx);
+    let mut ev_ctx = mpv.create_event_context();
+    ev_ctx
+        .observe_property("time-pos", Format::Double, 0)
+        .unwrap();
+    ev_ctx.observe_property("pause", Format::Flag, 0).unwrap();
+    ev_ctx
+        .observe_property("demuxer-cache-state", Format::Node, 0)
+        .unwrap();
+    ev_ctx
+        .observe_property("duration", Format::Double, 0)
+        .unwrap();
+
     let event_proxy = event_loop.create_proxy();
-    mpv.event_context_mut().set_wakeup_callback(move || {
+
+    std::thread::spawn(move || loop {
+        std::thread::sleep(std::time::Duration::from_millis(10));
         event_proxy
             .send_event(UserEvent::MpvEventAvailable)
             .unwrap();
     });
 
-    mpv.set_property("video-timing-offset", 0).unwrap();
-
-    let mpv = Arc::new(RwLock::new(mpv));
-    let mut app = ui::App::new(mpv.clone(), &egui_glow.egui_ctx);
-
     event_loop.run(move |event, _, control_flow| {
         let mut redraw = || {
-            let repaint_after = egui_glow.run(gl_window.window(), |egui_ctx| app.render(egui_ctx));
+            let repaint_after =
+                egui_glow.run(gl_window.window(), |egui_ctx| app.render(egui_ctx, &mpv));
             if repaint_after.is_zero() {
                 gl_window.window().request_redraw();
                 ControlFlow::Poll
@@ -240,9 +254,7 @@ fn main() {
                     gl_window.resize(**new_inner_size);
                 }
 
-                if app.playback {
-                    app.handle_player_keyboard_events(&event);
-                }
+                app.handle_player_keyboard_events(&event, &mpv);
 
                 let event_response = egui_glow.on_event(&event);
                 if event_response.repaint {
@@ -253,35 +265,19 @@ fn main() {
                 render_context.update();
                 gl_window.window().request_redraw();
             }
-            Event::UserEvent(UserEvent::MpvEventAvailable) => loop {
-                match mpv.write().unwrap().event_context_mut().wait_event(0.0) {
-                    Some(Ok(mpv_event)) => {
-                        println!("MPV event: {mpv_event:?}");
-
-                        match mpv_event {
-                            libmpv::events::Event::PlaybackRestart => {
-                                app.playback = true;
-                                app.is_paused = false;
-                            }
-                            libmpv::events::Event::EndFile(_) => {
-                                app.playback = false;
-                                app.is_paused = false;
-                            }
-                            _ => (),
-                        }
-                    }
-                    Some(Err(err)) => {
-                        println!("MPV Error: {err}");
-                        *control_flow = ControlFlow::Exit;
-                        break;
-                    }
-                    None => {
-                        *control_flow = ControlFlow::Wait;
-                        break;
-                    }
+            Event::UserEvent(UserEvent::MpvEventAvailable) => match ev_ctx.wait_event(0.0) {
+                Some(Ok(mpv_event)) => {
+                    app.handle_mpv_events(&mpv_event);
+                    gl_window.window.request_redraw();
+                }
+                Some(Err(err)) => {
+                    println!("MPV Error: {err}");
+                    *control_flow = ControlFlow::Exit;
+                }
+                None => {
+                    *control_flow = ControlFlow::Wait;
                 }
             },
-
             _ => (),
         }
     });
