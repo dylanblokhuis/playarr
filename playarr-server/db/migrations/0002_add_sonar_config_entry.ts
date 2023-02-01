@@ -5,7 +5,7 @@ import { Database } from "../instance.ts";
 
 export async function up(db: Kysely<Database>): Promise<void> {
 	await db.insertInto("config")
-		.values({name: "sonarr_url", value: ""})
+		.values({name: "sonarr_address", value: ""})
 		.execute();
 
 	await db.insertInto("config")
@@ -16,5 +16,9 @@ export async function up(db: Kysely<Database>): Promise<void> {
 export async function down(db: Kysely<Database>): Promise<void> {
 	await db.deleteFrom("config")
 		.where("config.name", "=", "sonarr_api_key")
+		.execute();
+
+	await db.deleteFrom("config")
+		.where("config.name", "=", "sonarr_address")
 		.execute();
 }
