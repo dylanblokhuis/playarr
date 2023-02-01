@@ -1,5 +1,7 @@
-import {Kysely, sql} from "kysely";
-import {Database} from "../../../db/instance.ts";
+/* This file has been generated with "dano task create_migration" */
+
+import { Kysely, sql } from "kysely";
+import { Database } from "../instance.ts";
 
 export async function up(db: Kysely<Database>): Promise<void> {
 	await db.schema
@@ -16,5 +18,5 @@ export async function up(db: Kysely<Database>): Promise<void> {
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
-	await db.schema.dropTable("user").execute();
+	await db.schema.dropTable("config").execute();
 }

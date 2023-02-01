@@ -11,31 +11,18 @@ async function migrate() {
 				const migrations: Record<string, Migration> = {};
 				const root = Deno.cwd();
 
-				// First we get all the folders in the root directory
-				for await (const fileOrDirectory of Deno.readDir(root)) {
-					if (fileOrDirectory.isDirectory) {
+				const migrationsDirectory = `${root}/db/migrations`;
+				const migrationFiles = await Deno.readDir(migrationsDirectory);
 
-						// Check if this folder got a db/migrations folder
-						const migrationsDirectory = `${root}/${fileOrDirectory.name}/db/migrations`;
-						await Deno.stat(migrationsDirectory).then(async () => {
+				for await (const migration of migrationFiles) {
+					const {up, down} = await import(
+						path.join(migrationsDirectory, `./${migration.name}`)
+						);
 
-							// If so, lets grab the migrations
-							const migrationFiles = await Deno.readDir(migrationsDirectory);
-
-							for await (const migration of migrationFiles) {
-								const {up, down} = await import(
-									path.join(migrationsDirectory, `./${migration.name}`)
-									);
-
-								migrations[migration.name] = {
-									up,
-									down,
-								};
-							}
-						}).catch(() => {
-							// No migrations found, but let's make the console happy
-						});
-					}
+					migrations[migration.name] = {
+						up,
+						down,
+					};
 				}
 
 				return migrations;
