@@ -33,12 +33,6 @@ async function createPackage(name: string) {
 	await Deno.mkdir(`${path}/db`);
 	await Deno.writeTextFile(routerFile, routerTemplate);
 	await Deno.writeTextFile(tablesFile, tablesTemplate);
-
-	// Todo: Do I need to close this?
-	// Create the first migration
-	Deno.run({
-		cmd: ["deno", "task", "create_migration", name, "setup_and_seed"]
-	});
 }
 
 
