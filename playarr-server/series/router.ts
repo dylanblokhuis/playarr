@@ -7,13 +7,13 @@ import db from "../db/instance.ts";
 const seriesRouter = new Router();
 seriesRouter
 	.get("/series", async ({response}) => {
+		// Todo: Add these to the config repo with getConfig(name: string)
 		const sonarr_address = (await db.selectFrom("config")
 			.selectAll()
 			.where("name", "=", "sonarr_address")
 			.executeTakeFirst())?.value;
 
-		console.log(sonarr_address)
-
+		// Todo: there must be a better way for this
 		if (!sonarr_address) {
 			response.status = 400;
 			response.body = "Please set sonarr_address in the settings";
@@ -31,15 +31,13 @@ seriesRouter
 			return;
 		}
 
+		//todo:  Create add some kind of "getSonarrUrl(path: string)" method, keeps things clean
 		const series = await (await fetch(`${sonarr_address}/api/v3/series`, {
 			method: "GET",
 			headers: {
 				"X-Api-Key": sonarr_api_key
 			}
 		})).json()
-
-		console.log(series);
-
 
 		response.body = series;
 	});
