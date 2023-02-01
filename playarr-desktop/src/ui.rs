@@ -2,6 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use egui::Vec2;
 use egui::{FontFamily, FontId, TextStyle};
+use egui_glow::egui_winit::winit::event::{ElementState, VirtualKeyCode, WindowEvent};
 use libmpv::{FileState, Mpv};
 
 use crate::widgets;
@@ -98,7 +99,6 @@ pub struct App {
     filepath: String,
     pub playback: bool,
     pub is_paused: bool,
-    pub seek_pos: f64,
 }
 
 impl App {
@@ -107,52 +107,52 @@ impl App {
         configure_text_styles(ctx);
         configure_default_button(ctx);
 
-        Self { mpv, filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"), playback: false, is_paused: false, seek_pos: 0.0 }
+        Self { mpv, filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"), playback: false, is_paused: false }
+    }
+
+    fn toggle_pause(&mut self) {
+        if self.is_paused {
+            self.mpv.read().unwrap().unpause().unwrap();
+        } else {
+            self.mpv.read().unwrap().pause().unwrap();
+        }
     }
 
     pub fn player_ui(&mut self, ctx: &egui::Context) {
+        {
+            self.is_paused = self
+                .mpv
+                .read()
+                .unwrap()
+                .get_property::<bool>("pause")
+                .unwrap_or(false);
+        }
+
         egui::Area::new("controls")
             .anchor(egui::Align2::LEFT_BOTTOM, Vec2::new(0.0, 0.0))
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
-                    let duration = self
-                        .mpv
-                        .read()
-                        .unwrap()
-                        .get_property::<i64>("duration")
-                        .unwrap_or(0);
+                    {
+                        let mpv = self.mpv.read().unwrap();
+                        let duration = mpv.get_property::<f64>("duration").unwrap_or(0.0);
+                        let time_pos = mpv.get_property::<f64>("time-pos").unwrap_or(0.0);
 
-                    let time_pos = self
-                        .mpv
-                        .read()
-                        .unwrap()
-                        .get_property::<i64>("time-pos")
-                        .unwrap_or(0);
+                        let size = 1024.0;
+                        let playbar =
+                            ui.add(widgets::playbar::Playbar::new(1024.0, duration, time_pos));
 
-                    let size = 1024.0;
-                    let playbar =
-                        ui.add(widgets::playbar::Playbar::new(1024.0, duration, time_pos));
-
-                    if playbar.clicked() {
-                        let pos = playbar.interact_pointer_pos().unwrap();
-                        let seek_to = (pos.x) / size * duration as f32;
-                        self.mpv
-                            .read()
-                            .unwrap()
-                            .seek_absolute(seek_to as f64)
-                            .unwrap();
+                        if playbar.clicked() || playbar.dragged() {
+                            let pos = playbar.interact_pointer_pos().unwrap();
+                            let seek_to = (pos.x) / size * duration as f32;
+                            mpv.seek_absolute(seek_to as f64).unwrap();
+                        }
                     }
 
                     if ui
                         .button(if self.is_paused { "Play" } else { "Pause" })
                         .clicked()
                     {
-                        if self.is_paused {
-                            self.mpv.read().unwrap().unpause().unwrap();
-                        } else {
-                            self.mpv.read().unwrap().pause().unwrap();
-                        }
-                        self.is_paused = !self.is_paused;
+                        self.toggle_pause();
                     }
 
                     if ui.button("Stop").clicked() {
@@ -196,5 +196,35 @@ impl App {
                         }
                     })
             });
+    }
+
+    pub fn handle_player_keyboard_events(&mut self, event: &WindowEvent) {
+        if let WindowEvent::KeyboardInput {
+            device_id: _,
+            input,
+            is_synthetic: _,
+        } = event
+        {
+            if input.virtual_keycode.is_none() {
+                return;
+            }
+            if input.state != ElementState::Released {
+                return;
+            }
+
+            // is shift held
+            let seek_time = if input.modifiers.shift() { 1.0 } else { 5.0 };
+
+            match input.virtual_keycode.unwrap() {
+                VirtualKeyCode::Left => self.mpv.read().unwrap().seek_backward(seek_time).unwrap(),
+                VirtualKeyCode::Right => {
+                    self.mpv.read().unwrap().seek_forward(seek_time).unwrap();
+                }
+                VirtualKeyCode::Space => {
+                    self.toggle_pause();
+                }
+                _ => {}
+            }
+        }
     }
 }

@@ -13,5 +13,5 @@ glutin = "0.30.2"           # examples/pure_glow
 raw-window-handle = "0.5.0"
 libmpv = { git = "https://github.com/dylanblokhuis/libmpv-rs.git" }
 
-[target.'cfg(target_os = "windows")'.dependencies]
-libmpv = { git = "https://github.com/dylanblokhuis/libmpv-rs.git", features=["build_libmpv"] }
+# [target.'cfg(target_os = "windows")'.dependencies]
+# libmpv = { git = "https://github.com/dylanblokhuis/libmpv-rs.git", features=["build_libmpv"] }
