@@ -13,13 +13,13 @@ const routerTemplate = `/* This file has been generated with "dano task create_p
 
 import {Router} from "oak";
 
-const router = new Router();
-router
+const someRouter = new Router();
+someRouter
 	.get("/", ({response}) => {
 		response.body = "Hello world!";
-	})
+	});
 
-export default router as someRouter
+export default someRouter;
 `;
 
 async function createPackage(name: string) {

@@ -5,6 +5,10 @@ import { Database } from "../instance.ts";
 
 export async function up(db: Kysely<Database>): Promise<void> {
 	await db.insertInto("config")
+		.values({name: "sonarr_url", value: ""})
+		.execute();
+
+	await db.insertInto("config")
 		.values({name: "sonarr_api_key", value: ""})
 		.execute();
 }

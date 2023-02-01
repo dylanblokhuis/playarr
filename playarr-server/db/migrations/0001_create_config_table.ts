@@ -7,7 +7,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
 	await db.schema
 		.createTable("config")
 		.addColumn("id", "integer", (col) => col.primaryKey().autoIncrement())
-		.addColumn("name", "varchar", (col) => col.notNull())
+		.addColumn("name", "varchar", (col) => col.notNull().unique())
 		.addColumn("value", "varchar", (col) => col.notNull())
 		.addColumn(
 			"updated_at",
