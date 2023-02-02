@@ -1,4 +1,4 @@
-/* This file has been generated with "dano task create_package" */
+/* This file has been generated with "deno task create_package" */
 /* Do not forget to add me to the routers in app.ts */
 
 import {Router} from "oak";

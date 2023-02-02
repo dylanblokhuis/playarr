@@ -1,4 +1,4 @@
-/* This file has been generated with "dano task create_migration" */
+/* This file has been generated with "deno task create_migration" */
 
 import { Kysely, sql } from "kysely";
 import { Database } from "../instance.ts";

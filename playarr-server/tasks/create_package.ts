@@ -1,4 +1,4 @@
-const tablesTemplate = `/* This file has been generated with "dano task create_package" */
+const tablesTemplate = `/* This file has been generated with "deno task create_package" */
 /* Do not forget to add me to the Database type */
 
 import {Generated, ColumnType} from "kysely";
@@ -8,7 +8,7 @@ export interface SomeTable {
 }
 `;
 
-const routerTemplate = `/* This file has been generated with "dano task create_package" */
+const routerTemplate = `/* This file has been generated with "deno task create_package" */
 /* Do not forget to add me to the routers in app.ts */
 
 import {Router} from "oak";
