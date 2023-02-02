@@ -143,9 +143,7 @@ impl App {
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
                     {                   
-                        let size = 1024.0;
                         let playbar = ui.add(widgets::playbar::Playbar::new(
-                            1024.0,
                             self.properties.duration,
                             self.properties.time_pos,
                             self.properties.seekable_ranges.clone(),
@@ -153,7 +151,7 @@ impl App {
 
                         if playbar.clicked() || playbar.dragged() {
                             let pos = playbar.interact_pointer_pos().unwrap();
-                            let seek_to = (pos.x) / size * self.properties.duration as f32;
+                            let seek_to = (pos.x) / ui.available_width() * self.properties.duration as f32;
                             if self.prev_seek != seek_to {
                                 mpv.seek_absolute(seek_to as f64).unwrap();
                                 mpv.pause().unwrap();

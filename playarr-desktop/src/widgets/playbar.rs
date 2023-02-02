@@ -3,18 +3,16 @@ use std::time::Duration;
 use egui::*;
 
 pub struct Playbar {
-    width: f32,
     duration: f64,
     pos: f64,
     seekable_ranges: Vec<(f64, f64)>,
 }
 
 impl Playbar {
-    pub fn new(width: f32, duration: f64, pos: f64, seekable_ranges: Vec<(f64, f64)>) -> Self {
+    pub fn new(duration: f64, pos: f64, seekable_ranges: Vec<(f64, f64)>) -> Self {
         Self {
             duration,
             pos,
-            width,
             seekable_ranges,
         }
     }
@@ -25,13 +23,14 @@ impl Widget for Playbar {
         let Playbar {
             pos,
             duration,
-            width,
             seekable_ranges,
         } = self;
 
         let height = 10.0;
-        let (rect, response) =
-            ui.allocate_at_least(Vec2::new(width, height), Sense::click_and_drag());
+        let (rect, response) = ui.allocate_at_least(
+            Vec2::new(ui.available_width(), height),
+            Sense::click_and_drag(),
+        );
 
         if ui.is_rect_visible(response.rect) {
             let stroke = ui.visuals().widgets.active.bg_stroke;
@@ -71,29 +70,31 @@ impl Widget for Playbar {
             );
 
             if response.hovered() || response.dragged() {
-            // circle to show there's handle
-            painter.circle_filled(
+                // circle to show there's handle
+                painter.circle_filled(
                     Pos2::new(end_pos_line, painter.round_to_pixel(rect.center().y)),
                     7.5,
                     Color32::WHITE,
                 );
 
-                
                 // seek text
                 if let Some(hover_pos) = response.hover_pos() {
                     let percentage = hover_pos.x / rect.width();
                     let duration = duration * percentage as f64;
-    
+
                     egui::Area::new("seek_text")
-                        .fixed_pos(Pos2::new(hover_pos.x - 20.0, painter.round_to_pixel(rect.top() - 35.0)))
+                        .fixed_pos(Pos2::new(
+                            hover_pos.x - 20.0,
+                            painter.round_to_pixel(rect.top() - 35.0),
+                        ))
                         .constrain(true)
                         .interactable(false)
                         .show(ui.ctx(), |ui: &mut Ui| {
-                            egui::Frame::none().inner_margin(5.0).rounding(5.0).fill(ui.visuals().window_fill).show(ui, |ui| {
-                                ui.label(
-                                    print_seconds_nice(duration)
-                                )
-                            })
+                            egui::Frame::none()
+                                .inner_margin(5.0)
+                                .rounding(5.0)
+                                .fill(ui.visuals().window_fill)
+                                .show(ui, |ui| ui.label(print_seconds_nice(duration)))
                         });
                 }
             }
