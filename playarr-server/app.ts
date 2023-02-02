@@ -1,9 +1,11 @@
 import {Application} from "oak";
 import configRouter from "./config/router.ts";
+import seriesRouter from "./series/router.ts";
 
 const app = new Application();
 const routers = [
-	configRouter
+	configRouter,
+	seriesRouter
 ];
 
 for (const router of routers) {
