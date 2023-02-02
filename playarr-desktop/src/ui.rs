@@ -75,6 +75,8 @@ fn configure_default_button(ctx: &egui::Context) {
     style.spacing.button_padding = egui::vec2(20.0, 8.0);
     style.spacing.item_spacing = egui::vec2(0.0, 12.0);
 
+    style.visuals.window_fill = egui::Color32::from_rgb(15, 23, 42);
+
     // default stae
     style.visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(99, 102, 241);
 
@@ -153,8 +155,8 @@ impl App {
                             let pos = playbar.interact_pointer_pos().unwrap();
                             let seek_to = (pos.x) / size * self.properties.duration as f32;
                             if self.prev_seek != seek_to {
-                                mpv.pause().unwrap();
                                 mpv.seek_absolute(seek_to as f64).unwrap();
+                                mpv.pause().unwrap();
                                 self.prev_seek = seek_to;
                             }
                         }
@@ -184,7 +186,7 @@ impl App {
             .frame(if self.properties.playback {
                 egui::Frame::none()
             } else {
-                egui::Frame::none().fill(egui::Color32::from_rgb(15, 23, 42))
+                egui::Frame::none().fill(ctx.style().visuals.window_fill)
             })
             .show(ctx, |ui| {
                 egui::Frame::none()
