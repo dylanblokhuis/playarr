@@ -1,0 +1,215 @@
+{
+	"info": {
+		"_postman_id": "420765c7-49f7-41c4-af0a-7eb7af9d2280",
+		"name": "Playarr",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Config",
+			"item": [
+				{
+					"name": "Get all",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/config",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"config"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get by name",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/config/sonarr_api_key",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"config",
+								"sonarr_api_key"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Change value",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": \"some_api_keya\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/config/sonarr_api_key",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"config",
+								"sonarr_api_key"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Series",
+			"item": [
+				{
+					"name": "Set sonarr_address",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": \"http://10.0.2.103:8989\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/config/sonarr_address",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"config",
+								"sonarr_address"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Set sonarr_api_key",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"value\": \"f1225def3f59417b80d572b04842fa9e\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/config/sonarr_api_key",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"config",
+								"sonarr_api_key"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/series",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"series"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get episodes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/series/1/episodes",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"series",
+								"1",
+								"episodes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get episode by id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/episode/114",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"episode",
+								"114"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "host",
+			"value": "http://localhost:8000"
+		}
+	]
+}

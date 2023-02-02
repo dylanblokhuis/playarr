@@ -8,7 +8,7 @@ configRouter
 			.selectAll()
 			.execute();
 	})
-	.get("/config/:name", async ({response, params}) => {
+	.get("/config/:name", async ({params, response}) => {
 		response.body = await db.selectFrom("config")
 			.selectAll()
 			.where("name", "=", params.name)
