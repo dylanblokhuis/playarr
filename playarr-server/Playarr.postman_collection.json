@@ -73,7 +73,7 @@
 			]
 		},
 		{
-			"name": "Series",
+			"name": "Shows",
 			"item": [
 				{
 					"name": "Set sonarr_address",
