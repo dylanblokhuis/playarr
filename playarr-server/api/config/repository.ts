@@ -1,5 +1,5 @@
 import db from "../../db/instance.ts";
-import {ConfigNotFoundException} from "./execptions.ts";
+import {ConfigHasNoValueException, ConfigNotFoundException} from "./execptions.ts";
 import {ConfigRow} from "./db/tables.ts";
 
 export async function getAllConfigs(): Promise<ConfigRow[]>  {
@@ -15,6 +15,7 @@ export async function getConfigByName(name: string): Promise<ConfigRow> {
 		.executeTakeFirst();
 
 	if (!config) throw new ConfigNotFoundException(name);
+	if (!config.value) throw new ConfigHasNoValueException(name);
 	return config;
 }
 
