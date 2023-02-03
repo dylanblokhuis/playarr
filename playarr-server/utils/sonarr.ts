@@ -1,4 +1,4 @@
-import {getConfigValue} from "../config/repository.ts";
+import {getConfigValue} from "../api/config/repository.ts";
 
 type methods = "GET" | "POST" | "PUT" | "DELETE";
 

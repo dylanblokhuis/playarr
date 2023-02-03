@@ -1,4 +1,4 @@
-import db from "../db/instance.ts";
+import db from "../../db/instance.ts";
 import {ConfigNotFoundException} from "./execptions.ts";
 import {ConfigRow} from "./db/tables.ts";
 

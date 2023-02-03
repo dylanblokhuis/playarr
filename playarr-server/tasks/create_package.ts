@@ -1,6 +1,6 @@
 const repositoryTemplate = `/* This file has been generated with "deno task create_package" */
 
-export async function someFunction {
+export async function someFunction() {
 	// ...
 }
 `;
@@ -31,7 +31,7 @@ export default someRouter;
 
 async function createPackage(name: string) {
 	const root = Deno.cwd();
-	const path = `${root}/${name}`;
+	const path = `${root}/api/${name}`;
 
 	const routerFile = `${path}/router.ts`;
 	const repositoryFile = `${path}/repository.ts`;

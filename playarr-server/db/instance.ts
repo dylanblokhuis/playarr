@@ -3,7 +3,7 @@ import {Database as SqliteDatabase} from "sqlite";
 import {SqliteDriver} from "./driver.ts";
 
 
-import {ConfigTable} from "../config/db/tables.ts";
+import {ConfigTable} from "../api/config/db/tables.ts";
 
 const sqlite = new SqliteDatabase("playarr.db");
 

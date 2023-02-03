@@ -1,6 +1,6 @@
 import {Application} from "oak";
-import configRouter from "./config/router.ts";
-import showsRouter from "./shows/router.ts";
+import configRouter from "./api/config/router.ts";
+import showsRouter from "./api/shows/router.ts";
 
 const app = new Application();
 
