@@ -1,12 +1,42 @@
 use std::collections::HashMap;
 
-use egui::Vec2;
+use egui::{Vec2, Ui, Color32, Frame};
 use egui::{FontFamily, FontId, TextStyle};
+use egui_extras::RetainedImage;
 use egui_glow::egui_winit::winit::event::{ElementState, VirtualKeyCode, WindowEvent};
 use libmpv::events::PropertyData;
 use libmpv::{FileState, Mpv, MpvNode};
 
-use crate::widgets;
+use crate::widgets::{self, icon};
+
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref PLAY_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
+        "play.svg",
+        include_bytes!("./assets/icons/play.svg"),
+        egui_extras::image::FitTo::Size(24, 24)
+    )
+    .unwrap();
+    static ref PAUSE_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
+        "pause.svg",
+        include_bytes!("./assets/icons/pause.svg"),
+        egui_extras::image::FitTo::Size(24, 24)
+    )
+    .unwrap();
+    static ref SEEK_BACK_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
+        "seek-back.svg",
+        include_bytes!("./assets/icons/seek-back.svg"),
+        egui_extras::image::FitTo::Size(24, 24)
+    )
+    .unwrap();
+    static ref SEEK_FORWARD_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
+        "seek-forward.svg",
+        include_bytes!("./assets/icons/seek-forward.svg"),
+        egui_extras::image::FitTo::Size(24, 24)
+    )
+    .unwrap();
+}
 
 fn configure_text_styles(ctx: &egui::Context) {
     let mut fonts = egui::FontDefinitions::default();
@@ -133,15 +163,18 @@ impl App {
         Self { 
             filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"),
             properties: MpvProperties::default(),
-            prev_seek: 0.0,
+            prev_seek: 0.0
         }
     }
 
     pub fn player_ui(&mut self, ctx: &egui::Context, mpv: &Mpv) {
-        egui::Area::new("controls")
-            .anchor(egui::Align2::LEFT_BOTTOM, Vec2::new(0.0, 0.0))
+        egui::TopBottomPanel::bottom("bottom_panel")
+            .frame(Frame::none())
+            .show_separator_line(false)
             .show(ctx, |ui| {
-                ui.vertical(|ui| {
+                ui.spacing_mut().item_spacing = Vec2::new(15.0, 0.0);
+                egui::Frame::none().inner_margin(0.0).fill(Color32::from_black_alpha(200)).show(ui, |ui: &mut Ui| {
+                    // seek bar
                     {                   
                         let playbar = ui.add(widgets::playbar::Playbar::new(
                             self.properties.duration,
@@ -164,17 +197,25 @@ impl App {
                             mpv.unpause().unwrap();
                         }
                     }
-
-                    if ui
-                        .button(if self.properties.is_paused { "Play" } else { "Pause" })
-                        .clicked()
-                    {
-                        mpv.cycle_property("pause", true).unwrap();
-                    }
-
-                    if ui.button("Stop").clicked() {
-                        mpv.playlist_remove_current().unwrap();
-                    }
+                    
+                    egui::Frame::none().inner_margin(10.0).show(ui, |ui: &mut Ui| {
+                        ui.horizontal_centered( |ui: &mut Ui| {
+                            let icon_size = 24.0;
+                            let icon_amount = 3.0;
+                            ui.add_space(ui.available_width() / 2.0 - (icon_size * icon_amount));
+                           
+                            if icon(ui, &SEEK_BACK_ICON).clicked() {
+                                mpv.seek_backward(10.0).unwrap();
+                            }
+                            if icon(ui, if self.properties.is_paused { &PLAY_ICON } else { &PAUSE_ICON }).clicked() {
+                                mpv.cycle_property("pause", true).unwrap();
+                            }
+                            if icon(ui, &SEEK_FORWARD_ICON).clicked() {
+                                mpv.seek_forward(10.0).unwrap();
+                            }
+                        })
+                    });
+                    
                 });
             });
     }
