@@ -1,35 +1,30 @@
 import {Router} from "oak";
-import db from "../db/instance.ts";
+import {getAllConfigs, getConfigByName, setConfigValue} from "./repository.ts";
 
 const configRouter = new Router();
 configRouter
 	.get("/config", async ({response}) => {
-		response.body = await db.selectFrom("config")
-			.selectAll()
-			.execute();
+		response.body = await getAllConfigs();
 	})
-	.get("/config/:name", async ({params, response}) => {
-		response.body = await db.selectFrom("config")
-			.selectAll()
-			.where("name", "=", params.name)
-			.executeTakeFirst();
+	.get("/config/:name", async ({params, response, throw: error}) => {
+		try {
+			response.body = await getConfigByName(params.name);
+		} catch (e) {
+			error(404, e.message);
+		}
 	})
-	.put("/config/:name", async ({request, params, response}) => {
-		// Todo: refactor on how to get request values, add some repository type abstraction layer for db interaction
+	.put("/config/:name", async ({request, params, response, throw: error}) => {
 		const value = await request.body().value;
-		const configValue = value.value ?? null;
+		const configValue = value?.value;
 
-		if (!configValue) {
-			response.status = 400;
-			response.body = "No value given"
-			return;
+		if (!configValue) error(400, "No value given");
+
+		try {
+			response.body = await setConfigValue(params.name, configValue);
+		} catch (e) {
+			error(404, e.message);
 		}
 
-		response.body = await db.updateTable("config")
-			.set({value: configValue})
-			.where("name", "=", params.name)
-			.returningAll()
-			.executeTakeFirst();
-	})
+	});
 
 export default configRouter;

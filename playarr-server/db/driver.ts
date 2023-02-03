@@ -11,7 +11,7 @@ class DenoSqliteError extends Error {
 
 interface DenoSqliteConfig {
 	/**
-	 * An sqlite Database instance or a function that returns one.
+	 * A sqlite Database instance or a function that returns one.
 	 *
 	 * If a function is provided, it's called once when the first query is executed.
 	 *

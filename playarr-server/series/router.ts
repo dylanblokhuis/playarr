@@ -2,37 +2,33 @@
 /* Do not forget to add me to the routers in app.ts */
 
 import {Router} from "oak";
-import {sonarrApi} from "../external/sonarr.ts";
+import {sonarrApi} from "../utils/sonarr.ts";
 
 const seriesRouter = new Router();
 
 seriesRouter
-	.get("/series", async ({response}) => {
+	.get("/series", async ({response, throw: error}) => {
 		try {
 			response.body = await sonarrApi("GET", "/series");
 		} catch (e) {
-			response.status = 400;
-			response.body = e.message;
+			error(400, e.message);
 		}
 	})
-	.get("/series/:series_id/episodes", async ({params, response}) => {
+	.get("/series/:series_id/episodes", async ({params, response, throw: error}) => {
 		try {
-			let episodes = await sonarrApi("GET", `/episode?seriesId=${params.series_id}&includeImages=true`);
+			const episodes = await sonarrApi("GET", `/episode?seriesId=${params.series_id}&includeImages=true`);
 
 			// Only show episodes that are supposed to be there
-			episodes = episodes.filter(e => e.monitored);
-			response.body = episodes;
+			response.body = episodes.filter(e => e.monitored);
 		} catch (e) {
-			response.status = 400;
-			response.body = e.message;
+			error(400, e.message);
 		}
 	})
-	.get("/episode/:episode_id", async ({params, response}) => {
+	.get("/episode/:episode_id", async ({params, response, throw: error}) => {
 		try {
 			response.body = await sonarrApi("GET", `/episode/${params.episode_id}`);
 		} catch (e) {
-			response.status = 400;
-			response.body = e.message;
+			error(400, e.message);
 		}
 	});
 
