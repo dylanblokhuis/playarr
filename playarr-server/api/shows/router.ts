@@ -10,7 +10,7 @@ showsRouter
 		try {
 			response.body = await getShows();
 		} catch (e) {
-			error(400, e.message);
+			await error(e.status, e.message);
 		}
 	})
 	.get("/shows/:show_id/episodes", async ({params, response, throw: error}) => {
@@ -20,14 +20,14 @@ showsRouter
 			// Only show episodes that are supposed to be there
 			response.body = episodes.filter((e: any) => e.monitored);
 		} catch (e) {
-			error(400, e.message);
+			await error(e.status, e.message);
 		}
 	})
 	.get("/episodes/:episode_id", async ({params, response, throw: error}) => {
 		try {
 			response.body = await getEpisodeById(params.episode_id);
 		} catch (e) {
-			error(400, e.message);
+			await error(e.status, e.message);
 		}
 	});
 

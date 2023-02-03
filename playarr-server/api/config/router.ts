@@ -10,19 +10,19 @@ configRouter
 		try {
 			response.body = await getConfigByName(params.name);
 		} catch (e) {
-			error(404, e.message);
+			await error(404, e.message);
 		}
 	})
 	.put("/config/:name", async ({request, params, response, throw: error}) => {
 		const value = await request.body().value;
 		const configValue = value?.value;
 
-		if (!configValue) error(400, "No value given");
+		if (!configValue) await error(400, "No value given");
 
 		try {
 			response.body = await setConfigValue(params.name, configValue);
 		} catch (e) {
-			error(404, e.message);
+			await error(404, e.message);
 		}
 
 	});

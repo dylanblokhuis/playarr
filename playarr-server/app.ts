@@ -10,6 +10,7 @@ app.use(async (context, next) => {
 	try {
 		await next();
 	} catch (e) {
+		context.response.status = e.status;
 		context.response.body = e.message;
 	}
 });
