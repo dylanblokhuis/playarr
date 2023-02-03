@@ -1,6 +1,6 @@
 import {Application} from "oak";
 import configRouter from "./config/router.ts";
-import tvRouter from "./tv/router.ts";
+import showsRouter from "./shows/router.ts";
 
 const app = new Application();
 
@@ -15,7 +15,7 @@ app.use(async (context, next) => {
 
 const routers = [
 	configRouter,
-	tvRouter
+	showsRouter
 ];
 
 for (const router of routers) {

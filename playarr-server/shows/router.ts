@@ -4,17 +4,16 @@
 import {Router} from "oak";
 import {getEpisodeById, getEpisodesByShow, getShows} from "./repository.ts";
 
-const tvRouter = new Router();
-
-tvRouter
-	.get("/tv", async ({response, throw: error}) => {
+const showsRouter = new Router();
+showsRouter
+	.get("/shows", async ({response, throw: error}) => {
 		try {
 			response.body = await getShows();
 		} catch (e) {
 			error(400, e.message);
 		}
 	})
-	.get("/tv/:show_id/episodes", async ({params, response, throw: error}) => {
+	.get("/shows/:show_id/episodes", async ({params, response, throw: error}) => {
 		try {
 			const episodes = await getEpisodesByShow(params.show_id);
 
@@ -24,7 +23,7 @@ tvRouter
 			error(400, e.message);
 		}
 	})
-	.get("/episode/:episode_id", async ({params, response, throw: error}) => {
+	.get("/episodes/:episode_id", async ({params, response, throw: error}) => {
 		try {
 			response.body = await getEpisodeById(params.episode_id);
 		} catch (e) {
@@ -32,4 +31,4 @@ tvRouter
 		}
 	});
 
-export default tvRouter;
+export default showsRouter;
