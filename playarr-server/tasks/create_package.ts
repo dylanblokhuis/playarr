@@ -1,7 +1,7 @@
 const repositoryTemplate = `/* This file has been generated with "deno task create_package" */
 
 export async function someFunction() {
-	// ...
+	return "hello world";
 }
 `;
 
@@ -19,11 +19,12 @@ const routerTemplate = `/* This file has been generated with "deno task create_p
 /* Do not forget to add me to the routers in app.ts */
 
 import {Router} from "oak";
+import {someFunction} from "./repository.ts";
 
 const someRouter = new Router();
 someRouter
-	.get("/", ({response}) => {
-		response.body = "Hello world!";
+	.get("/", async ({response}) => {
+		response.body = await someFunction();
 	});
 
 export default someRouter;

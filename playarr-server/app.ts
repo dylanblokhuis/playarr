@@ -1,6 +1,7 @@
 import {Application} from "oak";
 import configRouter from "./api/config/router.ts";
 import showsRouter from "./api/shows/router.ts";
+import calendarRouter from "./api/calendar/router.ts";
 
 const app = new Application();
 
@@ -15,7 +16,8 @@ app.use(async (context, next) => {
 
 const routers = [
 	configRouter,
-	showsRouter
+	showsRouter,
+	calendarRouter
 ];
 
 for (const router of routers) {
