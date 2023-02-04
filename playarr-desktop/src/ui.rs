@@ -1,52 +1,19 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
-use egui::{Color32, Frame, Sense, Ui, Vec2};
+use egui::{Align, Color32, Frame, Layout, Sense, Ui, Vec2};
 use egui::{FontFamily, FontId, TextStyle};
-use egui_extras::RetainedImage;
 use egui_glow::egui_winit::winit::event::{ElementState, VirtualKeyCode, WindowEvent};
 use libmpv::events::PropertyData;
 use libmpv::{FileState, Mpv, MpvNode};
+use winit::event::MouseScrollDelta;
 
-use crate::widgets::{self, icon};
-
-use lazy_static::lazy_static;
-
-lazy_static! {
-    static ref PLAY_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
-        "play.svg",
-        include_bytes!("./assets/icons/play.svg"),
-        egui_extras::image::FitTo::Size(20, 20)
-    )
-    .unwrap();
-    static ref PAUSE_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
-        "pause.svg",
-        include_bytes!("./assets/icons/pause.svg"),
-        egui_extras::image::FitTo::Size(20, 20)
-    )
-    .unwrap();
-    static ref SEEK_BACK_ICON: RetainedImage =
-        egui_extras::RetainedImage::from_svg_bytes_with_size(
-            "seek-back.svg",
-            include_bytes!("./assets/icons/seek-back.svg"),
-            egui_extras::image::FitTo::Size(20, 20)
-        )
-        .unwrap();
-    static ref SEEK_FORWARD_ICON: RetainedImage =
-        egui_extras::RetainedImage::from_svg_bytes_with_size(
-            "seek-forward.svg",
-            include_bytes!("./assets/icons/seek-forward.svg"),
-            egui_extras::image::FitTo::Size(20, 20)
-        )
-        .unwrap();
-    static ref CHEVRON_LEFT_ICON: RetainedImage =
-        egui_extras::RetainedImage::from_svg_bytes_with_size(
-            "chevron-left.svg",
-            include_bytes!("./assets/icons/chevron-left.svg"),
-            egui_extras::image::FitTo::Size(20, 20)
-        )
-        .unwrap();
-}
+use crate::widgets;
+use crate::widgets::icons::{
+    icon, CHEVRON_LEFT_ICON, PAUSE_ICON, PLAY_ICON, SEEK_BACK_ICON, SEEK_FORWARD_ICON,
+    VOLUME_MAX_ICON, VOLUME_MUTE_ICON,
+};
+use crate::widgets::volume::VolumeControl;
 
 #[derive(Debug)]
 struct MpvProperties {
@@ -55,6 +22,7 @@ struct MpvProperties {
     pub seekable_ranges: Vec<(f64, f64)>,
     pub playback: bool,
     pub is_paused: bool,
+    pub volume: i64,
 }
 
 impl Default for MpvProperties {
@@ -65,15 +33,16 @@ impl Default for MpvProperties {
             seekable_ranges: vec![(0.0, 0.0)],
             playback: false,
             is_paused: false,
+            volume: 100,
         }
     }
 }
 
 pub struct App {
     filepath: String,
-    prev_seek: f32,
     timestamp_last_mouse_movement: Instant,
     properties: MpvProperties,
+    prev_seek: f64,
 }
 
 impl App {
@@ -116,25 +85,21 @@ impl App {
 
                 // seek bar
                 {
+                    let mut seek_to = self.prev_seek;
                     let playbar = ui.add(widgets::playbar::Playbar::new(
                         self.properties.duration,
                         self.properties.time_pos,
                         self.properties.seekable_ranges.clone(),
+                        &mut seek_to,
                     ));
 
-                    if playbar.clicked() || playbar.dragged() {
-                        let pos = playbar.interact_pointer_pos().unwrap();
-                        let seek_to =
-                            (pos.x) / ui.available_width() * self.properties.duration as f32;
-                        if self.prev_seek != seek_to {
-                            mpv.seek_absolute(seek_to as f64).unwrap();
-                            mpv.pause().unwrap();
-                            self.prev_seek = seek_to;
-                        }
+                    if seek_to != self.prev_seek {
+                        self.prev_seek = seek_to;
+                        mpv.pause().unwrap();
+                        mpv.seek_absolute(seek_to).unwrap();
                     }
-
                     if playbar.drag_released() {
-                        self.prev_seek = 0.0;
+                        mpv.seek_absolute(seek_to).unwrap();
                         mpv.unpause().unwrap();
                     }
                 }
@@ -165,7 +130,34 @@ impl App {
                             if icon(ui, &SEEK_FORWARD_ICON).clicked() {
                                 mpv.seek_forward(10.0).unwrap();
                             }
-                        })
+
+                            // right column
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                ui.add_space(10.0);
+
+                                let mut volume_control = self.properties.volume;
+                                ui.add(VolumeControl::new(&mut volume_control));
+                                if volume_control != self.properties.volume {
+                                    mpv.set_property("volume", volume_control).unwrap();
+                                }
+                                if icon(
+                                    ui,
+                                    if volume_control == 0 {
+                                        &VOLUME_MUTE_ICON
+                                    } else {
+                                        &VOLUME_MAX_ICON
+                                    },
+                                )
+                                .clicked()
+                                {
+                                    mpv.set_property(
+                                        "volume",
+                                        if volume_control == 0 { 100 } else { 0 },
+                                    )
+                                    .unwrap();
+                                }
+                            });
+                        });
                     });
             });
     }
@@ -193,6 +185,7 @@ impl App {
 
                         if ui.button("Watch").clicked() {
                             self.timestamp_last_mouse_movement = std::time::Instant::now();
+                            self.properties.playback = true;
                             mpv.playlist_load_files(&[(
                                 &self.filepath,
                                 FileState::AppendPlay,
@@ -232,7 +225,6 @@ impl App {
                 return;
             }
 
-            // is shift held
             let seek_time = if input.modifiers.shift() { 1.0 } else { 5.0 };
 
             match input.virtual_keycode.unwrap() {
@@ -260,6 +252,29 @@ impl App {
                 modifiers: _,
             } => {
                 self.timestamp_last_mouse_movement = std::time::Instant::now();
+            }
+            WindowEvent::MouseWheel {
+                device_id: _,
+                delta,
+                phase: _,
+                modifiers: _,
+            } => {
+                if let MouseScrollDelta::LineDelta(_, y) = delta {
+                    let curr_volume = mpv.get_property::<i64>("volume").unwrap();
+                    if *y > 0.0 {
+                        mpv.set_property("volume", curr_volume + 5).unwrap();
+                    }
+                    if *y < 0.0 && curr_volume != 0 {
+                        mpv.set_property(
+                            "volume",
+                            match curr_volume {
+                                0..=4 => 0,
+                                _ => curr_volume - 5,
+                            },
+                        )
+                        .unwrap();
+                    }
+                }
             }
             _ => {}
         }
@@ -297,6 +312,12 @@ impl App {
                         return;
                     };
                     self.properties.duration = *duration;
+                }
+                if name == &"volume" {
+                    let PropertyData::Int64(volume) = change else {
+                        return;
+                    };
+                    self.properties.volume = *volume;
                 }
                 if name == &"demuxer-cache-state" {
                     let PropertyData::Node(mpv_node) = change else {

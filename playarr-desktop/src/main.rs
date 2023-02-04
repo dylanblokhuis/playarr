@@ -194,6 +194,7 @@ fn main() {
     ev_ctx
         .observe_property("duration", Format::Double, 0)
         .unwrap();
+    ev_ctx.observe_property("volume", Format::Int64, 0).unwrap();
 
     let event_proxy = event_loop.create_proxy();
 
