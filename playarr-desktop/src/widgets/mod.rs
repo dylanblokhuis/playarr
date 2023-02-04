@@ -1,3 +1,5 @@
 pub mod icons;
-pub mod playbar;
-pub mod volume;
+mod playbar;
+mod volume;
+pub use playbar::Playbar;
+pub use volume::VolumeControl;

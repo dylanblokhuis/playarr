@@ -6,7 +6,9 @@ use libmpv::{render::RenderContext, Mpv};
 use std::ffi::{c_char, c_void, CStr};
 use std::mem::transmute;
 
+mod pages;
 mod ui;
+mod utils;
 mod widgets;
 
 use egui_glow::egui_winit::winit;

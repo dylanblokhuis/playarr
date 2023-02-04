@@ -1,23 +1,17 @@
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
-use egui::style::Margin;
-use egui::{Align, Color32, Frame, Layout, Sense, Ui, Vec2};
+use egui::Sense;
 use egui::{FontFamily, FontId, TextStyle};
 use egui_glow::egui_winit::winit::event::{ElementState, VirtualKeyCode, WindowEvent};
 use libmpv::events::PropertyData;
-use libmpv::{FileState, Mpv, MpvNode};
+use libmpv::{Mpv, MpvNode};
 use winit::event::MouseScrollDelta;
 
-use crate::widgets;
-use crate::widgets::icons::{
-    icon, CHEVRON_LEFT_ICON, PAUSE_ICON, PLAY_ICON, SEEK_BACK_ICON, SEEK_FORWARD_ICON,
-    VOLUME_MAX_ICON, VOLUME_MUTE_ICON,
-};
-use crate::widgets::volume::VolumeControl;
+use crate::pages;
 
 #[derive(Debug)]
-struct MpvProperties {
+pub struct MpvProperties {
     pub duration: f64,
     pub time_pos: f64,
     pub seekable_ranges: Vec<(f64, f64)>,
@@ -40,10 +34,10 @@ impl Default for MpvProperties {
 }
 
 pub struct App {
-    filepath: String,
-    timestamp_last_mouse_movement: Instant,
-    properties: MpvProperties,
-    prev_seek: f64,
+    pub filepath: String,
+    pub timestamp_last_mouse_movement: Instant,
+    pub properties: MpvProperties,
+    pub prev_seek: f64,
 }
 
 impl App {
@@ -60,129 +54,6 @@ impl App {
         }
     }
 
-    pub fn player_ui(&mut self, ctx: &egui::Context, mpv: &Mpv) {
-        if self.timestamp_last_mouse_movement.elapsed().as_secs_f32() >= 1.5 {
-            return;
-        }
-
-        egui::TopBottomPanel::top("top_panel")
-            .show_separator_line(false)
-            .frame(Frame::none().inner_margin(10.0))
-            .show(ctx, |ui| {
-                if icon(ui, &CHEVRON_LEFT_ICON).clicked() {
-                    mpv.playlist_remove_current().unwrap();
-                }
-            });
-
-        egui::TopBottomPanel::bottom("bottom_panel")
-            .frame(
-                Frame::none()
-                    .inner_margin(0.0)
-                    .fill(Color32::from_black_alpha(150)),
-            )
-            .show_separator_line(false)
-            .show(ctx, |ui| {
-                ui.spacing_mut().item_spacing = Vec2::new(15.0, 0.0);
-
-                // seek bar
-                {
-                    let mut seek_to = self.prev_seek;
-                    let playbar = ui.add(widgets::playbar::Playbar::new(
-                        self.properties.duration,
-                        self.properties.time_pos,
-                        self.properties.seekable_ranges.clone(),
-                        &mut seek_to,
-                    ));
-
-                    if seek_to != self.prev_seek {
-                        self.prev_seek = seek_to;
-                        mpv.pause().unwrap();
-                        mpv.seek_absolute(seek_to).unwrap();
-                    }
-                    if playbar.drag_released() {
-                        mpv.seek_absolute(seek_to).unwrap();
-                        mpv.unpause().unwrap();
-                    }
-                }
-
-                egui::Frame::none()
-                    .inner_margin(Margin {
-                        left: 20.0,
-                        right: 20.0,
-                        top: 10.0,
-                        bottom: 10.0,
-                    })
-                    .show(ui, |ui: &mut Ui| {
-                        ui.horizontal_centered(|ui: &mut Ui| {
-                            let initial_avail_width = ui.available_width();
-
-                            let left_column = 150.0;
-                            let (rect, _) = ui
-                                .allocate_exact_size(Vec2::new(left_column, 20.0), Sense::click());
-                            ui.child_ui(rect, *ui.layout()).label(format!(
-                                "{:02} / {:02}",
-                                seconds_to_video_duration(self.properties.time_pos),
-                                seconds_to_video_duration(self.properties.duration)
-                            ));
-
-                            let icon_size = 20.0;
-                            let icon_amount = 3.0;
-                            let total_gap = ui.spacing().item_spacing.x * icon_amount;
-
-                            ui.add_space(
-                                (initial_avail_width / 2.0)
-                                    - ((icon_size * icon_amount + total_gap) / 2.0)
-                                    - (left_column + ui.spacing().item_spacing.x),
-                            );
-
-                            if icon(ui, &SEEK_BACK_ICON).clicked() {
-                                mpv.seek_backward(10.0).unwrap();
-                            }
-                            if icon(
-                                ui,
-                                if self.properties.is_paused {
-                                    &PLAY_ICON
-                                } else {
-                                    &PAUSE_ICON
-                                },
-                            )
-                            .clicked()
-                            {
-                                mpv.cycle_property("pause", true).unwrap();
-                            }
-                            if icon(ui, &SEEK_FORWARD_ICON).clicked() {
-                                mpv.seek_forward(10.0).unwrap();
-                            }
-
-                            // right column
-                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                let mut volume_control = self.properties.volume;
-                                ui.add(VolumeControl::new(&mut volume_control));
-                                if volume_control != self.properties.volume {
-                                    mpv.set_property("volume", volume_control).unwrap();
-                                }
-                                if icon(
-                                    ui,
-                                    if volume_control == 0 {
-                                        &VOLUME_MUTE_ICON
-                                    } else {
-                                        &VOLUME_MAX_ICON
-                                    },
-                                )
-                                .clicked()
-                                {
-                                    mpv.set_property(
-                                        "volume",
-                                        if volume_control == 0 { 100 } else { 0 },
-                                    )
-                                    .unwrap();
-                                }
-                            });
-                        });
-                    });
-            });
-    }
-
     pub fn render(&mut self, ctx: &egui::Context, mpv: &Mpv) {
         let body = egui::CentralPanel::default()
             .frame(if self.properties.playback {
@@ -196,24 +67,11 @@ impl App {
                     .outer_margin(0.0)
                     .show(ui, |ui| {
                         if self.properties.playback {
-                            self.player_ui(ctx, mpv);
+                            pages::Player::render(self, ui, mpv);
                             return;
                         }
 
-                        ui.heading("Playarr");
-
-                        ui.text_edit_singleline(&mut self.filepath);
-
-                        if ui.button("Watch").clicked() {
-                            self.timestamp_last_mouse_movement = std::time::Instant::now();
-                            self.properties.playback = true;
-                            mpv.playlist_load_files(&[(
-                                &self.filepath,
-                                FileState::AppendPlay,
-                                None,
-                            )])
-                            .unwrap();
-                        }
+                        pages::Overview::render(self, ui, mpv);
                     })
             });
 
@@ -455,20 +313,4 @@ fn configure_default_button(ctx: &egui::Context) {
     style.visuals.override_text_color = Some(egui::Color32::from_rgb(255, 255, 255));
 
     ctx.set_style(style);
-}
-
-pub fn seconds_to_video_duration(seconds: f64) -> String {
-    let duration = chrono::Duration::from_std(Duration::from_secs(seconds as u64)).unwrap();
-    let seconds_padded = format!("{:02}", duration.num_seconds() % 60);
-    let minutes_padded = format!("{:02}", duration.num_minutes() % 60);
-    if duration.num_hours() > 0 {
-        return format!(
-            "{}:{}:{}",
-            duration.num_hours(),
-            minutes_padded,
-            seconds_padded
-        );
-    }
-
-    format!("{}:{}", duration.num_minutes(), seconds_padded)
 }

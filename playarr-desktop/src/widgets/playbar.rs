@@ -1,8 +1,6 @@
-use std::time::Duration;
-
 use egui::*;
 
-use crate::ui::seconds_to_video_duration;
+use crate::utils::seconds_to_video_duration;
 
 type GetSetValue<'a> = Box<dyn 'a + FnMut(Option<f64>) -> f64>;
 
