@@ -114,6 +114,8 @@ impl App {
                     })
                     .show(ui, |ui: &mut Ui| {
                         ui.horizontal_centered(|ui: &mut Ui| {
+                            let initial_avail_width = ui.available_width();
+
                             let left_column = 150.0;
                             let (rect, _) = ui
                                 .allocate_exact_size(Vec2::new(left_column, 20.0), Sense::click());
@@ -125,10 +127,12 @@ impl App {
 
                             let icon_size = 20.0;
                             let icon_amount = 3.0;
+                            let total_gap = ui.spacing().item_spacing.x * icon_amount;
+
                             ui.add_space(
-                                (ui.available_width() / 2.0)
-                                    - left_column / 2.0
-                                    - (icon_size * icon_amount),
+                                (initial_avail_width / 2.0)
+                                    - ((icon_size * icon_amount + total_gap) / 2.0)
+                                    - (left_column + ui.spacing().item_spacing.x),
                             );
 
                             if icon(ui, &SEEK_BACK_ICON).clicked() {
