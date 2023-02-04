@@ -1,3 +1,7 @@
+## Dependencies:
+- rust >1.67
+- mpv 0.35.0
+
 ## Compile for Windows
 
 - download and extract libmpv - 2022-11-13 from sourceforge x86_64
