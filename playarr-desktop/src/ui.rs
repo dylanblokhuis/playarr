@@ -1,6 +1,7 @@
 use std::collections::HashMap;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
+use egui::style::Margin;
 use egui::{Align, Color32, Frame, Layout, Sense, Ui, Vec2};
 use egui::{FontFamily, FontId, TextStyle};
 use egui_glow::egui_winit::winit::event::{ElementState, VirtualKeyCode, WindowEvent};
@@ -105,12 +106,30 @@ impl App {
                 }
 
                 egui::Frame::none()
-                    .inner_margin(10.0)
+                    .inner_margin(Margin {
+                        left: 20.0,
+                        right: 20.0,
+                        top: 10.0,
+                        bottom: 10.0,
+                    })
                     .show(ui, |ui: &mut Ui| {
                         ui.horizontal_centered(|ui: &mut Ui| {
+                            let left_column = 150.0;
+                            let (rect, _) = ui
+                                .allocate_exact_size(Vec2::new(left_column, 20.0), Sense::click());
+                            ui.child_ui(rect, *ui.layout()).label(format!(
+                                "{:02} / {:02}",
+                                seconds_to_video_duration(self.properties.time_pos),
+                                seconds_to_video_duration(self.properties.duration)
+                            ));
+
                             let icon_size = 20.0;
                             let icon_amount = 3.0;
-                            ui.add_space(ui.available_width() / 2.0 - (icon_size * icon_amount));
+                            ui.add_space(
+                                (ui.available_width() / 2.0)
+                                    - left_column / 2.0
+                                    - (icon_size * icon_amount),
+                            );
 
                             if icon(ui, &SEEK_BACK_ICON).clicked() {
                                 mpv.seek_backward(10.0).unwrap();
@@ -133,8 +152,6 @@ impl App {
 
                             // right column
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                ui.add_space(10.0);
-
                                 let mut volume_control = self.properties.volume;
                                 ui.add(VolumeControl::new(&mut volume_control));
                                 if volume_control != self.properties.volume {
@@ -434,4 +451,20 @@ fn configure_default_button(ctx: &egui::Context) {
     style.visuals.override_text_color = Some(egui::Color32::from_rgb(255, 255, 255));
 
     ctx.set_style(style);
+}
+
+pub fn seconds_to_video_duration(seconds: f64) -> String {
+    let duration = chrono::Duration::from_std(Duration::from_secs(seconds as u64)).unwrap();
+    let seconds_padded = format!("{:02}", duration.num_seconds() % 60);
+    let minutes_padded = format!("{:02}", duration.num_minutes() % 60);
+    if duration.num_hours() > 0 {
+        return format!(
+            "{}:{}:{}",
+            duration.num_hours(),
+            minutes_padded,
+            seconds_padded
+        );
+    }
+
+    format!("{}:{}", duration.num_minutes(), seconds_padded)
 }

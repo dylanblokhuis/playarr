@@ -2,6 +2,8 @@ use std::time::Duration;
 
 use egui::*;
 
+use crate::ui::seconds_to_video_duration;
+
 type GetSetValue<'a> = Box<dyn 'a + FnMut(Option<f64>) -> f64>;
 
 fn get(get_set_value: &mut GetSetValue<'_>) -> f64 {
@@ -111,7 +113,9 @@ impl<'a> Widget for Playbar<'a> {
                                 .rounding(5.0)
                                 .fill(ui.visuals().window_fill)
                                 .show(ui, |ui| {
-                                    ui.add(Label::new(print_seconds_nice(duration)).wrap(false))
+                                    ui.add(
+                                        Label::new(seconds_to_video_duration(duration)).wrap(false),
+                                    )
                                 })
                         });
                 }
@@ -127,10 +131,4 @@ impl<'a> Widget for Playbar<'a> {
 
         response
     }
-}
-
-fn print_seconds_nice(seconds: f64) -> String {
-    let duration = chrono::Duration::from_std(Duration::from_secs(seconds as u64)).unwrap();
-    let seconds_padded = format!("{:02}", duration.num_seconds() % 60);
-    format!("{}:{}", duration.num_minutes(), seconds_padded)
 }
