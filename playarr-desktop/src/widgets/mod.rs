@@ -8,9 +8,7 @@ pub fn icon(ui: &mut Ui, icon: &RetainedImage) -> Response {
         .fill(ui.visuals().widgets.active.bg_fill)
         .inner_margin(5.0)
         .rounding(100.0)
-        .show(ui, |ui: &mut Ui| {
-            icon.show(ui);
-        })
+        .show(ui, |ui: &mut Ui| icon.show(ui))
         .response;
 
     res.interact(Sense::click())

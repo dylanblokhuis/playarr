@@ -255,6 +255,7 @@ fn main() {
                 }
 
                 app.handle_player_keyboard_events(&event, &mpv);
+                app.handle_player_mouse_events(&event, &mpv);
 
                 let event_response = egui_glow.on_event(&event);
                 if event_response.repaint {

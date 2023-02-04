@@ -1,6 +1,7 @@
 use std::collections::HashMap;
+use std::time::Instant;
 
-use egui::{Vec2, Ui, Color32, Frame};
+use egui::{Color32, Frame, Sense, Ui, Vec2};
 use egui::{FontFamily, FontId, TextStyle};
 use egui_extras::RetainedImage;
 use egui_glow::egui_winit::winit::event::{ElementState, VirtualKeyCode, WindowEvent};
@@ -15,27 +16,36 @@ lazy_static! {
     static ref PLAY_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
         "play.svg",
         include_bytes!("./assets/icons/play.svg"),
-        egui_extras::image::FitTo::Size(24, 24)
+        egui_extras::image::FitTo::Size(20, 20)
     )
     .unwrap();
     static ref PAUSE_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
         "pause.svg",
         include_bytes!("./assets/icons/pause.svg"),
-        egui_extras::image::FitTo::Size(24, 24)
+        egui_extras::image::FitTo::Size(20, 20)
     )
     .unwrap();
-    static ref SEEK_BACK_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
-        "seek-back.svg",
-        include_bytes!("./assets/icons/seek-back.svg"),
-        egui_extras::image::FitTo::Size(24, 24)
-    )
-    .unwrap();
-    static ref SEEK_FORWARD_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
-        "seek-forward.svg",
-        include_bytes!("./assets/icons/seek-forward.svg"),
-        egui_extras::image::FitTo::Size(24, 24)
-    )
-    .unwrap();
+    static ref SEEK_BACK_ICON: RetainedImage =
+        egui_extras::RetainedImage::from_svg_bytes_with_size(
+            "seek-back.svg",
+            include_bytes!("./assets/icons/seek-back.svg"),
+            egui_extras::image::FitTo::Size(20, 20)
+        )
+        .unwrap();
+    static ref SEEK_FORWARD_ICON: RetainedImage =
+        egui_extras::RetainedImage::from_svg_bytes_with_size(
+            "seek-forward.svg",
+            include_bytes!("./assets/icons/seek-forward.svg"),
+            egui_extras::image::FitTo::Size(20, 20)
+        )
+        .unwrap();
+    static ref CHEVRON_LEFT_ICON: RetainedImage =
+        egui_extras::RetainedImage::from_svg_bytes_with_size(
+            "chevron-left.svg",
+            include_bytes!("./assets/icons/chevron-left.svg"),
+            egui_extras::image::FitTo::Size(20, 20)
+        )
+        .unwrap();
 }
 
 fn configure_text_styles(ctx: &egui::Context) {
@@ -151,6 +161,7 @@ impl Default for MpvProperties {
 pub struct App {
     filepath: String,
     prev_seek: f32,
+    timestamp_last_mouse_movement: Instant,
     properties: MpvProperties,
 }
 
@@ -160,54 +171,84 @@ impl App {
         configure_text_styles(ctx);
         configure_default_button(ctx);
 
-        Self { 
+        Self {
             filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"),
+            timestamp_last_mouse_movement: std::time::Instant::now(),
             properties: MpvProperties::default(),
-            prev_seek: 0.0
+            prev_seek: 0.0,
         }
     }
 
     pub fn player_ui(&mut self, ctx: &egui::Context, mpv: &Mpv) {
+        if self.timestamp_last_mouse_movement.elapsed().as_secs_f32() >= 1.5 {
+            return;
+        }
+
+        egui::TopBottomPanel::top("top_panel")
+            .show_separator_line(false)
+            .frame(Frame::none().inner_margin(10.0))
+            .show(ctx, |ui| {
+                if icon(ui, &CHEVRON_LEFT_ICON).clicked() {
+                    mpv.playlist_remove_current().unwrap();
+                }
+            });
+
         egui::TopBottomPanel::bottom("bottom_panel")
-            .frame(Frame::none())
+            .frame(
+                Frame::none()
+                    .inner_margin(0.0)
+                    .fill(Color32::from_black_alpha(150)),
+            )
             .show_separator_line(false)
             .show(ctx, |ui| {
                 ui.spacing_mut().item_spacing = Vec2::new(15.0, 0.0);
-                egui::Frame::none().inner_margin(0.0).fill(Color32::from_black_alpha(200)).show(ui, |ui: &mut Ui| {
-                    // seek bar
-                    {                   
-                        let playbar = ui.add(widgets::playbar::Playbar::new(
-                            self.properties.duration,
-                            self.properties.time_pos,
-                            self.properties.seekable_ranges.clone(),
-                        ));
 
-                        if playbar.clicked() || playbar.dragged() {
-                            let pos = playbar.interact_pointer_pos().unwrap();
-                            let seek_to = (pos.x) / ui.available_width() * self.properties.duration as f32;
-                            if self.prev_seek != seek_to {
-                                mpv.seek_absolute(seek_to as f64).unwrap();
-                                mpv.pause().unwrap();
-                                self.prev_seek = seek_to;
-                            }
-                        }
+                // seek bar
+                {
+                    let playbar = ui.add(widgets::playbar::Playbar::new(
+                        self.properties.duration,
+                        self.properties.time_pos,
+                        self.properties.seekable_ranges.clone(),
+                    ));
 
-                        if playbar.drag_released() {
-                            self.prev_seek = 0.0;
-                            mpv.unpause().unwrap();
+                    if playbar.clicked() || playbar.dragged() {
+                        let pos = playbar.interact_pointer_pos().unwrap();
+                        let seek_to =
+                            (pos.x) / ui.available_width() * self.properties.duration as f32;
+                        if self.prev_seek != seek_to {
+                            mpv.seek_absolute(seek_to as f64).unwrap();
+                            mpv.pause().unwrap();
+                            self.prev_seek = seek_to;
                         }
                     }
-                    
-                    egui::Frame::none().inner_margin(10.0).show(ui, |ui: &mut Ui| {
-                        ui.horizontal_centered( |ui: &mut Ui| {
-                            let icon_size = 24.0;
+
+                    if playbar.drag_released() {
+                        self.prev_seek = 0.0;
+                        mpv.unpause().unwrap();
+                    }
+                }
+
+                egui::Frame::none()
+                    .inner_margin(10.0)
+                    .show(ui, |ui: &mut Ui| {
+                        ui.horizontal_centered(|ui: &mut Ui| {
+                            let icon_size = 20.0;
                             let icon_amount = 3.0;
                             ui.add_space(ui.available_width() / 2.0 - (icon_size * icon_amount));
-                           
+
                             if icon(ui, &SEEK_BACK_ICON).clicked() {
                                 mpv.seek_backward(10.0).unwrap();
                             }
-                            if icon(ui, if self.properties.is_paused { &PLAY_ICON } else { &PAUSE_ICON }).clicked() {
+                            if icon(
+                                ui,
+                                if self.properties.is_paused {
+                                    &PLAY_ICON
+                                } else {
+                                    &PAUSE_ICON
+                                },
+                            )
+                            .clicked()
+                            {
                                 mpv.cycle_property("pause", true).unwrap();
                             }
                             if icon(ui, &SEEK_FORWARD_ICON).clicked() {
@@ -215,13 +256,11 @@ impl App {
                             }
                         })
                     });
-                    
-                });
             });
     }
 
     pub fn render(&mut self, ctx: &egui::Context, mpv: &Mpv) {
-        egui::CentralPanel::default()
+        let body = egui::CentralPanel::default()
             .frame(if self.properties.playback {
                 egui::Frame::none()
             } else {
@@ -242,6 +281,7 @@ impl App {
                         ui.text_edit_singleline(&mut self.filepath);
 
                         if ui.button("Watch").clicked() {
+                            self.timestamp_last_mouse_movement = std::time::Instant::now();
                             mpv.playlist_load_files(&[(
                                 &self.filepath,
                                 FileState::AppendPlay,
@@ -251,6 +291,16 @@ impl App {
                         }
                     })
             });
+
+        if body.response.interact(Sense::click()).clicked() {
+            self.on_body_click(mpv)
+        }
+    }
+
+    pub fn on_body_click(&mut self, mpv: &Mpv) {
+        if self.properties.playback {
+            mpv.cycle_property("pause", true).unwrap();
+        }
     }
 
     pub fn handle_player_keyboard_events(&mut self, event: &WindowEvent, mpv: &Mpv) {
@@ -284,6 +334,23 @@ impl App {
                 }
                 _ => {}
             }
+        }
+    }
+
+    pub fn handle_player_mouse_events(&mut self, event: &WindowEvent, mpv: &Mpv) {
+        if !self.properties.playback {
+            return;
+        }
+
+        match event {
+            WindowEvent::CursorMoved {
+                device_id: _,
+                position: _,
+                modifiers: _,
+            } => {
+                self.timestamp_last_mouse_movement = std::time::Instant::now();
+            }
+            _ => {}
         }
     }
 

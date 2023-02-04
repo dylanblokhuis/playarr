@@ -94,7 +94,9 @@ impl Widget for Playbar {
                                 .inner_margin(5.0)
                                 .rounding(5.0)
                                 .fill(ui.visuals().window_fill)
-                                .show(ui, |ui| ui.label(print_seconds_nice(duration)))
+                                .show(ui, |ui| {
+                                    ui.add(Label::new(print_seconds_nice(duration)).wrap(false))
+                                })
                         });
                 }
             }
