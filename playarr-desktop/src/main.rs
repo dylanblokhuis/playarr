@@ -279,6 +279,10 @@ fn main() {
                     *control_flow = ControlFlow::Wait;
                 }
             },
+            Event::LoopDestroyed => {
+                egui_glow.destroy();
+                *control_flow = ControlFlow::Exit;
+            }
             _ => (),
         }
     });
