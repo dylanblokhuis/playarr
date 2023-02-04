@@ -33,11 +33,15 @@ impl Default for MpvProperties {
     }
 }
 
-pub struct App {
+pub struct AppState {
     pub filepath: String,
     pub timestamp_last_mouse_movement: Instant,
-    pub properties: MpvProperties,
     pub prev_seek: f64,
+}
+
+pub struct App {
+    pub properties: MpvProperties,
+    pub state: AppState,
 }
 
 impl App {
@@ -47,10 +51,12 @@ impl App {
         configure_default_button(ctx);
 
         Self {
-            filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"),
-            timestamp_last_mouse_movement: std::time::Instant::now(),
+            state: AppState {
+                filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"),
+                timestamp_last_mouse_movement: std::time::Instant::now(),
+                prev_seek: 0.0,
+            },
             properties: MpvProperties::default(),
-            prev_seek: 0.0,
         }
     }
 
@@ -130,7 +136,7 @@ impl App {
                 position: _,
                 modifiers: _,
             } => {
-                self.timestamp_last_mouse_movement = std::time::Instant::now();
+                self.state.timestamp_last_mouse_movement = std::time::Instant::now();
             }
             WindowEvent::MouseWheel {
                 device_id: _,

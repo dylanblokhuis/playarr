@@ -11,7 +11,13 @@ pub struct Player;
 
 impl Player {
     pub fn render(app: &mut App, ui: &mut Ui, mpv: &Mpv) {
-        if app.timestamp_last_mouse_movement.elapsed().as_secs_f32() >= 1.5 {
+        if app
+            .state
+            .timestamp_last_mouse_movement
+            .elapsed()
+            .as_secs_f32()
+            >= 1.5
+        {
             return;
         }
 
@@ -36,7 +42,7 @@ impl Player {
 
                 // seek bar
                 {
-                    let mut seek_to = app.prev_seek;
+                    let mut seek_to = app.state.prev_seek;
                     let playbar = ui.add(Playbar::new(
                         app.properties.duration,
                         app.properties.time_pos,
@@ -44,8 +50,8 @@ impl Player {
                         &mut seek_to,
                     ));
 
-                    if seek_to != app.prev_seek {
-                        app.prev_seek = seek_to;
+                    if seek_to != app.state.prev_seek {
+                        app.state.prev_seek = seek_to;
                         mpv.pause().unwrap();
                         mpv.seek_absolute(seek_to).unwrap();
                     }
