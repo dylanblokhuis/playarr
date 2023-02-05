@@ -32,7 +32,7 @@ impl NetworkImageCache {
         let cache = Arc::new(RwLock::new(HashMap::<String, Arc<RetainedImage>>::new()));
         let is_loading = Arc::new(RwLock::new(HashMap::<String, bool>::new()));
 
-        let rt = Builder::new_current_thread().enable_all().build().unwrap();
+        let rt = Builder::new_multi_thread().enable_all().build().unwrap();
 
         let cache2 = cache.clone();
         let is_loading2 = is_loading.clone();
