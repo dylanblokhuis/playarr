@@ -7,6 +7,7 @@ use std::ffi::{c_char, c_void, CStr};
 use std::mem::transmute;
 
 mod pages;
+mod server;
 mod ui;
 mod utils;
 mod widgets;

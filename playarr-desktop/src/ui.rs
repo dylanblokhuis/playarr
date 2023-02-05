@@ -9,6 +9,7 @@ use libmpv::{Mpv, MpvNode};
 use winit::event::MouseScrollDelta;
 
 use crate::pages;
+use crate::server::{Client, NetworkImageCache};
 
 #[derive(Debug)]
 pub struct MpvProperties {
@@ -38,10 +39,11 @@ pub struct AppState {
     pub timestamp_last_mouse_movement: Instant,
     pub prev_seek: f64,
 }
-
 pub struct App {
     pub properties: MpvProperties,
     pub state: AppState,
+    pub client: Client,
+    pub network_image_cache: NetworkImageCache,
 }
 
 impl App {
@@ -57,6 +59,8 @@ impl App {
                 prev_seek: 0.0,
             },
             properties: MpvProperties::default(),
+            client: Client::new(),
+            network_image_cache: NetworkImageCache::new()
         }
     }
 

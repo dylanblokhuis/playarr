@@ -1,4 +1,4 @@
-import {sonarrApi} from "../../utils/sonarr.ts";
+import { sonarrApi } from "../../utils/sonarr.ts";
 
 export async function getShows() {
 	return await sonarrApi("GET", "/series");
