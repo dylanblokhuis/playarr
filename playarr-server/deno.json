@@ -6,7 +6,7 @@
     "kysely": "npm:kysely@0.23.4"
   },
   "tasks": {
-    "dev": "deno run --watch main.ts",
+    "dev": "deno run --unstable --allow-read --allow-net --allow-env --allow-ffi --allow-write --watch app.ts",
     "migrate": "deno run --allow-env --allow-read --allow-ffi --unstable tasks/migrate.ts",
     "create_migration": "deno run --allow-read --allow-write tasks/create_migration.ts",
     "create_package": "deno run --allow-read --allow-write --allow-run tasks/create_package.ts"

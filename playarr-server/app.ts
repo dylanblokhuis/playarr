@@ -1,4 +1,4 @@
-import {Application} from "oak";
+import { Application } from "oak";
 import configRouter from "./api/config/router.ts";
 import showsRouter from "./api/shows/router.ts";
 import moviesRouter from "./api/movies/router.ts";
@@ -28,4 +28,6 @@ for (const router of routers) {
 	app.use(router.allowedMethods());
 }
 
-await app.listen({port: 8000});
+const port = 8000
+console.log(`listening on http://localhost:${port}`)
+await app.listen({ port });

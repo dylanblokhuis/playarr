@@ -1,19 +1,19 @@
 /* This file has been generated with "deno task create_package" */
 /* Do not forget to add me to the routers in app.ts */
 
-import {Router} from "oak";
-import {getEpisodeById, getEpisodesByShow, getShows} from "./repository.ts";
+import { Router } from "oak";
+import { getEpisodeById, getEpisodesByShow, getShows } from "./repository.ts";
 
 const showsRouter = new Router();
 showsRouter
-	.get("/shows", async ({response, throw: error}) => {
+	.get("/shows", async ({ response, throw: error }) => {
 		try {
 			response.body = await getShows();
 		} catch (e) {
 			await error(e.status, e.message);
 		}
 	})
-	.get("/shows/:show_id/episodes", async ({params, response, throw: error}) => {
+	.get("/shows/:show_id/episodes", async ({ params, response, throw: error }) => {
 		try {
 			const episodes = await getEpisodesByShow(params.show_id);
 
@@ -23,7 +23,7 @@ showsRouter
 			await error(e.status, e.message);
 		}
 	})
-	.get("/episodes/:episode_id", async ({params, response, throw: error}) => {
+	.get("/episodes/:episode_id", async ({ params, response, throw: error }) => {
 		try {
 			response.body = await getEpisodeById(params.episode_id);
 		} catch (e) {

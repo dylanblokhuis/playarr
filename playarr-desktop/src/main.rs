@@ -5,8 +5,12 @@ use libmpv::Format;
 use libmpv::{render::RenderContext, Mpv};
 use std::ffi::{c_char, c_void, CStr};
 use std::mem::transmute;
+use std::sync::{Arc, Mutex};
 
+mod pages;
+mod server;
 mod ui;
+mod utils;
 mod widgets;
 
 use egui_glow::egui_winit::winit;
@@ -181,7 +185,6 @@ fn main() {
         event_proxy.send_event(UserEvent::RedrawRequested).unwrap();
     });
 
-    // let mpv = Arc::new(RwLock::new(mpv));
     let mut app = ui::App::new(&egui_glow.egui_ctx);
     let mut ev_ctx = mpv.create_event_context();
     ev_ctx
@@ -194,14 +197,23 @@ fn main() {
     ev_ctx
         .observe_property("duration", Format::Double, 0)
         .unwrap();
+    ev_ctx.observe_property("volume", Format::Int64, 0).unwrap();
 
     let event_proxy = event_loop.create_proxy();
-
     std::thread::spawn(move || loop {
         std::thread::sleep(std::time::Duration::from_millis(10));
         event_proxy
             .send_event(UserEvent::MpvEventAvailable)
             .unwrap();
+    });
+
+    let repaint_proxy = Arc::new(Mutex::new(event_loop.create_proxy()));
+    egui_glow.egui_ctx.set_request_repaint_callback(move || {
+        repaint_proxy
+            .lock()
+            .unwrap()
+            .send_event(UserEvent::RedrawRequested)
+            .ok();
     });
 
     event_loop.run(move |event, _, control_flow| {
@@ -255,6 +267,7 @@ fn main() {
                 }
 
                 app.handle_player_keyboard_events(&event, &mpv);
+                app.handle_player_mouse_events(&event, &mpv);
 
                 let event_response = egui_glow.on_event(&event);
                 if event_response.repaint {
@@ -278,6 +291,10 @@ fn main() {
                     *control_flow = ControlFlow::Wait;
                 }
             },
+            Event::LoopDestroyed => {
+                egui_glow.destroy();
+                *control_flow = ControlFlow::Exit;
+            }
             _ => (),
         }
     });

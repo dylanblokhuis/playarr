@@ -135,12 +135,12 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{host}}/series",
+							"raw": "{{host}}/shows",
 							"host": [
 								"{{host}}"
 							],
 							"path": [
-								"series"
+								"shows"
 							]
 						}
 					},
@@ -152,12 +152,12 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{host}}/series/1/episodes",
+							"raw": "{{host}}/shows/1/episodes",
 							"host": [
 								"{{host}}"
 							],
 							"path": [
-								"series",
+								"shows",
 								"1",
 								"episodes"
 							]

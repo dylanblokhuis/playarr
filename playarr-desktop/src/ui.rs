@@ -1,41 +1,248 @@
 use std::collections::HashMap;
+use std::time::Instant;
 
-use egui::{Vec2, Ui, Color32, Frame};
+use egui::Sense;
 use egui::{FontFamily, FontId, TextStyle};
-use egui_extras::RetainedImage;
 use egui_glow::egui_winit::winit::event::{ElementState, VirtualKeyCode, WindowEvent};
 use libmpv::events::PropertyData;
-use libmpv::{FileState, Mpv, MpvNode};
+use libmpv::{Mpv, MpvNode};
+use tokio::runtime::Builder;
+use winit::event::MouseScrollDelta;
 
-use crate::widgets::{self, icon};
+use crate::pages;
+use crate::server::{Client, NetworkCache, NetworkImageCache};
 
-use lazy_static::lazy_static;
+#[derive(Debug)]
+pub struct MpvProperties {
+    pub duration: f64,
+    pub time_pos: f64,
+    pub seekable_ranges: Vec<(f64, f64)>,
+    pub is_paused: bool,
+    pub volume: i64,
+}
 
-lazy_static! {
-    static ref PLAY_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
-        "play.svg",
-        include_bytes!("./assets/icons/play.svg"),
-        egui_extras::image::FitTo::Size(24, 24)
-    )
-    .unwrap();
-    static ref PAUSE_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
-        "pause.svg",
-        include_bytes!("./assets/icons/pause.svg"),
-        egui_extras::image::FitTo::Size(24, 24)
-    )
-    .unwrap();
-    static ref SEEK_BACK_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
-        "seek-back.svg",
-        include_bytes!("./assets/icons/seek-back.svg"),
-        egui_extras::image::FitTo::Size(24, 24)
-    )
-    .unwrap();
-    static ref SEEK_FORWARD_ICON: RetainedImage = egui_extras::RetainedImage::from_svg_bytes_with_size(
-        "seek-forward.svg",
-        include_bytes!("./assets/icons/seek-forward.svg"),
-        egui_extras::image::FitTo::Size(24, 24)
-    )
-    .unwrap();
+impl Default for MpvProperties {
+    fn default() -> Self {
+        Self {
+            duration: 0.0,
+            time_pos: 0.0,
+            seekable_ranges: vec![(0.0, 0.0)],
+            is_paused: false,
+            volume: 100,
+        }
+    }
+}
+
+#[derive(PartialEq)]
+pub enum Page {
+    Overview,
+    Player,
+    Show(i64),
+}
+
+pub struct AppState {
+    pub page: Page,
+    pub filepath: String,
+    pub timestamp_last_mouse_movement: Instant,
+    pub prev_seek: f64,
+}
+
+pub struct App {
+    pub properties: MpvProperties,
+    pub state: AppState,
+    pub client: Client,
+    pub network_image_cache: NetworkImageCache,
+}
+
+impl App {
+    pub fn new(ctx: &egui::Context) -> Self {
+        // setup egui styles
+        configure_text_styles(ctx);
+        configure_default_button(ctx);
+
+        let rt = Builder::new_multi_thread().enable_all().build().unwrap();
+        let network_cache = NetworkCache::new(rt, ctx.clone());
+
+        Self {
+            state: AppState {
+                page: Page::Overview,
+                filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"),
+                timestamp_last_mouse_movement: std::time::Instant::now(),
+                prev_seek: 0.0,
+            },
+            properties: MpvProperties::default(),
+            client: Client::new(network_cache.clone()),
+            network_image_cache: NetworkImageCache::new(network_cache, ctx.clone())
+        }
+    }
+
+    pub fn render(&mut self, ctx: &egui::Context, mpv: &Mpv) {
+        let body = egui::CentralPanel::default()
+            .frame(if self.state.page == Page::Player {
+                egui::Frame::none()
+            } else {
+                egui::Frame::none().fill(ctx.style().visuals.window_fill)
+            })
+            .show(ctx, |ui| {
+                egui::Frame::none()
+                    .inner_margin(0.0)
+                    .outer_margin(0.0)
+                    .show(ui, |ui| match self.state.page {
+                        Page::Overview => pages::Overview::render(self, ui, mpv),
+                        Page::Player => pages::Player::render(self, ui, mpv),
+                        Page::Show(id) => pages::Show::render(self, ui, mpv, id),
+                    })
+            });
+
+        if body.response.interact(Sense::click()).clicked() {
+            self.on_body_click(mpv)
+        }
+    }
+
+    pub fn on_body_click(&mut self, mpv: &Mpv) {
+        if self.state.page == Page::Player {
+            mpv.cycle_property("pause", true).unwrap();
+        }
+    }
+
+    pub fn handle_player_keyboard_events(&mut self, event: &WindowEvent, mpv: &Mpv) {
+        if self.state.page != Page::Player {
+            return;
+        }
+
+        if let WindowEvent::KeyboardInput {
+            device_id: _,
+            input,
+            is_synthetic: _,
+        } = event
+        {
+            if input.virtual_keycode.is_none() {
+                return;
+            }
+            if input.state != ElementState::Released {
+                return;
+            }
+
+            let seek_time = if input.modifiers.shift() { 1.0 } else { 5.0 };
+
+            match input.virtual_keycode.unwrap() {
+                VirtualKeyCode::Left => mpv.seek_backward(seek_time).unwrap(),
+                VirtualKeyCode::Right => {
+                    mpv.seek_forward(seek_time).unwrap();
+                }
+                VirtualKeyCode::Space => {
+                    mpv.cycle_property("pause", true).unwrap();
+                }
+                _ => {}
+            }
+        }
+    }
+
+    pub fn handle_player_mouse_events(&mut self, event: &WindowEvent, mpv: &Mpv) {
+        if self.state.page != Page::Player {
+            return;
+        }
+
+        match event {
+            WindowEvent::CursorMoved {
+                device_id: _,
+                position: _,
+                modifiers: _,
+            } => {
+                self.state.timestamp_last_mouse_movement = std::time::Instant::now();
+            }
+            WindowEvent::MouseWheel {
+                device_id: _,
+                delta,
+                phase: _,
+                modifiers: _,
+            } => {
+                if let MouseScrollDelta::LineDelta(_, y) = delta {
+                    let curr_volume = mpv.get_property::<i64>("volume").unwrap();
+                    if *y > 0.0 {
+                        mpv.set_property("volume", curr_volume + 5).unwrap();
+                    }
+                    if *y < 0.0 && curr_volume != 0 {
+                        mpv.set_property(
+                            "volume",
+                            match curr_volume {
+                                0..=4 => 0,
+                                _ => curr_volume - 5,
+                            },
+                        )
+                        .unwrap();
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    pub fn handle_mpv_events(&mut self, event: &libmpv::events::Event) {
+        match event {
+            libmpv::events::Event::PlaybackRestart => {
+                self.state.page = Page::Player;
+                self.properties.is_paused = false;
+            }
+            libmpv::events::Event::EndFile(_) => {
+                self.state.page = Page::Overview;
+                self.properties.is_paused = false;
+            }
+            libmpv::events::Event::PropertyChange {
+                name,
+                change,
+                reply_userdata: _,
+            } => {
+                if name == &"time-pos" {
+                    let PropertyData::Double(time_pos) = change else {
+                        return;
+                    };
+                    self.properties.time_pos = *time_pos;
+                }
+                if name == &"pause" {
+                    let PropertyData::Flag(is_paused) = change else {
+                        return;
+                    };
+                    self.properties.is_paused = *is_paused;
+                }
+                if name == &"duration" {
+                    let PropertyData::Double(duration) = change else {
+                        return;
+                    };
+                    self.properties.duration = *duration;
+                }
+                if name == &"volume" {
+                    let PropertyData::Int64(volume) = change else {
+                        return;
+                    };
+                    self.properties.volume = *volume;
+                }
+                if name == &"demuxer-cache-state" {
+                    let PropertyData::Node(mpv_node) = change else {
+                        return;
+                    };
+                    let seekable_ranges = |node: &MpvNode| {
+                        let mut res = Vec::new();
+                        let props: HashMap<&str, MpvNode> = node.to_map()?.collect();
+                        let ranges = props.get("seekable-ranges")?.to_array()?;
+
+                        for node in ranges {
+                            let range: HashMap<&str, MpvNode> = node.to_map()?.collect();
+                            let start = range.get("start")?.to_f64()?;
+                            let end = range.get("end")?.to_f64()?;
+                            res.push((start, end));
+                        }
+
+                        Some(res)
+                    };
+                    self.properties.seekable_ranges = seekable_ranges(mpv_node).unwrap();
+                }
+
+                // println!("PropertyChange: {} {:?} {:?}", name, change, reply_userdata)
+            }
+            _ => {}
+        }
+    }
 }
 
 fn configure_text_styles(ctx: &egui::Context) {
@@ -104,7 +311,6 @@ fn configure_default_button(ctx: &egui::Context) {
     // spacing
     style.spacing.button_padding = egui::vec2(20.0, 8.0);
     style.spacing.item_spacing = egui::vec2(0.0, 12.0);
-
     style.visuals.window_fill = egui::Color32::from_rgb(15, 23, 42);
 
     // default stae
@@ -125,225 +331,4 @@ fn configure_default_button(ctx: &egui::Context) {
     style.visuals.override_text_color = Some(egui::Color32::from_rgb(255, 255, 255));
 
     ctx.set_style(style);
-}
-
-#[derive(Debug)]
-struct MpvProperties {
-    pub duration: f64,
-    pub time_pos: f64,
-    pub seekable_ranges: Vec<(f64, f64)>,
-    pub playback: bool,
-    pub is_paused: bool,
-}
-
-impl Default for MpvProperties {
-    fn default() -> Self {
-        Self {
-            duration: 0.0,
-            time_pos: 0.0,
-            seekable_ranges: vec![(0.0, 0.0)],
-            playback: false,
-            is_paused: false,
-        }
-    }
-}
-
-pub struct App {
-    filepath: String,
-    prev_seek: f32,
-    properties: MpvProperties,
-}
-
-impl App {
-    pub fn new(ctx: &egui::Context) -> Self {
-        // setup egui styles
-        configure_text_styles(ctx);
-        configure_default_button(ctx);
-
-        Self { 
-            filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"),
-            properties: MpvProperties::default(),
-            prev_seek: 0.0
-        }
-    }
-
-    pub fn player_ui(&mut self, ctx: &egui::Context, mpv: &Mpv) {
-        egui::TopBottomPanel::bottom("bottom_panel")
-            .frame(Frame::none())
-            .show_separator_line(false)
-            .show(ctx, |ui| {
-                ui.spacing_mut().item_spacing = Vec2::new(15.0, 0.0);
-                egui::Frame::none().inner_margin(0.0).fill(Color32::from_black_alpha(200)).show(ui, |ui: &mut Ui| {
-                    // seek bar
-                    {                   
-                        let playbar = ui.add(widgets::playbar::Playbar::new(
-                            self.properties.duration,
-                            self.properties.time_pos,
-                            self.properties.seekable_ranges.clone(),
-                        ));
-
-                        if playbar.clicked() || playbar.dragged() {
-                            let pos = playbar.interact_pointer_pos().unwrap();
-                            let seek_to = (pos.x) / ui.available_width() * self.properties.duration as f32;
-                            if self.prev_seek != seek_to {
-                                mpv.seek_absolute(seek_to as f64).unwrap();
-                                mpv.pause().unwrap();
-                                self.prev_seek = seek_to;
-                            }
-                        }
-
-                        if playbar.drag_released() {
-                            self.prev_seek = 0.0;
-                            mpv.unpause().unwrap();
-                        }
-                    }
-                    
-                    egui::Frame::none().inner_margin(10.0).show(ui, |ui: &mut Ui| {
-                        ui.horizontal_centered( |ui: &mut Ui| {
-                            let icon_size = 24.0;
-                            let icon_amount = 3.0;
-                            ui.add_space(ui.available_width() / 2.0 - (icon_size * icon_amount));
-                           
-                            if icon(ui, &SEEK_BACK_ICON).clicked() {
-                                mpv.seek_backward(10.0).unwrap();
-                            }
-                            if icon(ui, if self.properties.is_paused { &PLAY_ICON } else { &PAUSE_ICON }).clicked() {
-                                mpv.cycle_property("pause", true).unwrap();
-                            }
-                            if icon(ui, &SEEK_FORWARD_ICON).clicked() {
-                                mpv.seek_forward(10.0).unwrap();
-                            }
-                        })
-                    });
-                    
-                });
-            });
-    }
-
-    pub fn render(&mut self, ctx: &egui::Context, mpv: &Mpv) {
-        egui::CentralPanel::default()
-            .frame(if self.properties.playback {
-                egui::Frame::none()
-            } else {
-                egui::Frame::none().fill(ctx.style().visuals.window_fill)
-            })
-            .show(ctx, |ui| {
-                egui::Frame::none()
-                    .inner_margin(20.0)
-                    .outer_margin(0.0)
-                    .show(ui, |ui| {
-                        if self.properties.playback {
-                            self.player_ui(ctx, mpv);
-                            return;
-                        }
-
-                        ui.heading("Playarr");
-
-                        ui.text_edit_singleline(&mut self.filepath);
-
-                        if ui.button("Watch").clicked() {
-                            mpv.playlist_load_files(&[(
-                                &self.filepath,
-                                FileState::AppendPlay,
-                                None,
-                            )])
-                            .unwrap();
-                        }
-                    })
-            });
-    }
-
-    pub fn handle_player_keyboard_events(&mut self, event: &WindowEvent, mpv: &Mpv) {
-        if !self.properties.playback {
-            return;
-        }
-
-        if let WindowEvent::KeyboardInput {
-            device_id: _,
-            input,
-            is_synthetic: _,
-        } = event
-        {
-            if input.virtual_keycode.is_none() {
-                return;
-            }
-            if input.state != ElementState::Released {
-                return;
-            }
-
-            // is shift held
-            let seek_time = if input.modifiers.shift() { 1.0 } else { 5.0 };
-
-            match input.virtual_keycode.unwrap() {
-                VirtualKeyCode::Left => mpv.seek_backward(seek_time).unwrap(),
-                VirtualKeyCode::Right => {
-                    mpv.seek_forward(seek_time).unwrap();
-                }
-                VirtualKeyCode::Space => {
-                    mpv.cycle_property("pause", true).unwrap();
-                }
-                _ => {}
-            }
-        }
-    }
-
-    pub fn handle_mpv_events(&mut self, event: &libmpv::events::Event) {
-        match event {
-            libmpv::events::Event::PlaybackRestart => {
-                self.properties.playback = true;
-                self.properties.is_paused = false;
-            }
-            libmpv::events::Event::EndFile(_) => {
-                self.properties.playback = false;
-                self.properties.is_paused = false;
-            }
-            libmpv::events::Event::PropertyChange {
-                name,
-                change,
-                reply_userdata: _,
-            } => {
-                if name == &"time-pos" {
-                    let PropertyData::Double(time_pos) = change else {
-                        return;
-                    };
-                    self.properties.time_pos = *time_pos;
-                }
-                if name == &"pause" {
-                    let PropertyData::Flag(is_paused) = change else {
-                        return;
-                    };
-                    self.properties.is_paused = *is_paused;
-                }
-                if name == &"duration" {
-                    let PropertyData::Double(duration) = change else {
-                        return;
-                    };
-                    self.properties.duration = *duration;
-                }
-                if name == &"demuxer-cache-state" {
-                    let PropertyData::Node(mpv_node) = change else {
-                        return;
-                    };
-                    let seekable_ranges = |node: &MpvNode| {
-                        let mut res = Vec::new();
-                        let props: HashMap<&str, MpvNode> = node.to_map()?.collect();
-                        let ranges = props.get("seekable-ranges")?.to_array()?;
-
-                        for node in ranges {
-                            let range: HashMap<&str, MpvNode> = node.to_map()?.collect();
-                            let start = range.get("start")?.to_f64()?;
-                            let end = range.get("end")?.to_f64()?;
-                            res.push((start, end));
-                        }
-
-                        Some(res)
-                    };
-                    self.properties.seekable_ranges = seekable_ranges(mpv_node).unwrap();
-                }
-
-                // println!("PropertyChange: {} {:?} {:?}", name, change, reply_userdata)
-            }
-            _ => {}
-        }
-    }
 }
