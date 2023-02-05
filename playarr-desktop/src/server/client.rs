@@ -1,11 +1,8 @@
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
-
 use ::serde::de::DeserializeOwned;
-use tokio::runtime::Builder;
-use tokio::sync::mpsc;
 
 use crate::server::serde::Shows;
+
+use super::NetworkCache;
 
 pub enum Fetch {
     Shows,
@@ -21,43 +18,14 @@ fn get_url_for_fetch(fetch: &Fetch) -> String {
     }
 }
 
-async fn handle_task(fetch: Fetch) -> (String, String) {
-    let url: String = get_url_for_fetch(&fetch);
-
-    let resp = reqwest::get(url.clone())
-        .await
-        .unwrap()
-        .text()
-        .await
-        .unwrap();
-    (url, resp)
-}
-
 #[derive(Clone)]
 pub struct Client {
-    spawn: mpsc::Sender<Fetch>,
-    cache: Arc<RwLock<HashMap<String, String>>>,
+    cache: NetworkCache,
 }
 
 impl Client {
-    pub fn new() -> Client {
-        let (send, mut recv) = mpsc::channel(16);
-        let cache = Arc::new(RwLock::new(HashMap::<String, String>::new()));
-
-        let rt = Builder::new_current_thread().enable_all().build().unwrap();
-
-        let cache2 = cache.clone();
-        std::thread::spawn(move || {
-            rt.block_on(async move {
-                while let Some(task) = recv.recv().await {
-                    let result = tokio::spawn(handle_task(task));
-                    let (key, result) = result.await.unwrap();
-                    cache2.write().unwrap().insert(key, result);
-                }
-            });
-        });
-
-        Client { spawn: send, cache }
+    pub fn new(cache: NetworkCache) -> Client {
+        Client { cache }
     }
 
     /**
@@ -68,18 +36,14 @@ impl Client {
     where
         T: DeserializeOwned,
     {
-        let cache = self.cache.read().unwrap();
         let url = get_url_for_fetch(&fetch);
 
-        if let Some(json) = cache.get(&url) {
-            let data: T = serde_json::from_str(json).unwrap();
+        if let Some(bytes) = self.cache.fetch(url) {
+            let data: T = serde_json::from_slice(&bytes).unwrap();
             return Some(data);
         }
 
-        match self.spawn.blocking_send(fetch) {
-            Ok(()) => None,
-            Err(_) => panic!("The async runtime has shut down."),
-        }
+        None
     }
 
     pub fn get_all_series(&self) -> Option<Shows> {

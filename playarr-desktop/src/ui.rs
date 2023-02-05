@@ -6,10 +6,11 @@ use egui::{FontFamily, FontId, TextStyle};
 use egui_glow::egui_winit::winit::event::{ElementState, VirtualKeyCode, WindowEvent};
 use libmpv::events::PropertyData;
 use libmpv::{Mpv, MpvNode};
+use tokio::runtime::{Builder, Runtime};
 use winit::event::MouseScrollDelta;
 
 use crate::pages;
-use crate::server::{Client, NetworkImageCache};
+use crate::server::{Client, NetworkCache, NetworkImageCache};
 
 #[derive(Debug)]
 pub struct MpvProperties {
@@ -52,6 +53,9 @@ impl App {
         configure_text_styles(ctx);
         configure_default_button(ctx);
 
+        let rt = Builder::new_multi_thread().enable_all().build().unwrap();
+        let network_cache = NetworkCache::new(rt, ctx.clone());
+
         Self {
             state: AppState {
                 filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"),
@@ -59,8 +63,8 @@ impl App {
                 prev_seek: 0.0,
             },
             properties: MpvProperties::default(),
-            client: Client::new(),
-            network_image_cache: NetworkImageCache::new()
+            client: Client::new(network_cache.clone()),
+            network_image_cache: NetworkImageCache::new(network_cache, ctx.clone())
         }
     }
 
@@ -73,7 +77,7 @@ impl App {
             })
             .show(ctx, |ui| {
                 egui::Frame::none()
-                    .inner_margin(20.0)
+                    .inner_margin(0.0)
                     .outer_margin(0.0)
                     .show(ui, |ui| {
                         if self.properties.playback {

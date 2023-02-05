@@ -5,6 +5,7 @@ use libmpv::Format;
 use libmpv::{render::RenderContext, Mpv};
 use std::ffi::{c_char, c_void, CStr};
 use std::mem::transmute;
+use std::sync::{Arc, Mutex};
 
 mod pages;
 mod server;
@@ -184,7 +185,6 @@ fn main() {
         event_proxy.send_event(UserEvent::RedrawRequested).unwrap();
     });
 
-    // let mpv = Arc::new(RwLock::new(mpv));
     let mut app = ui::App::new(&egui_glow.egui_ctx);
     let mut ev_ctx = mpv.create_event_context();
     ev_ctx
@@ -200,12 +200,20 @@ fn main() {
     ev_ctx.observe_property("volume", Format::Int64, 0).unwrap();
 
     let event_proxy = event_loop.create_proxy();
-
     std::thread::spawn(move || loop {
         std::thread::sleep(std::time::Duration::from_millis(10));
         event_proxy
             .send_event(UserEvent::MpvEventAvailable)
             .unwrap();
+    });
+
+    let repaint_proxy = Arc::new(Mutex::new(event_loop.create_proxy()));
+    egui_glow.egui_ctx.set_request_repaint_callback(move || {
+        repaint_proxy
+            .lock()
+            .unwrap()
+            .send_event(UserEvent::RedrawRequested)
+            .ok();
     });
 
     event_loop.run(move |event, _, control_flow| {
