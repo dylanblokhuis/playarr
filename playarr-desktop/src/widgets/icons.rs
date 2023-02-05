@@ -61,5 +61,9 @@ pub fn icon(ui: &mut Ui, icon: &RetainedImage) -> Response {
         .show(ui, |ui: &mut Ui| icon.show(ui))
         .response;
 
+    if res.hovered() {
+        ui.ctx().output().cursor_icon = egui::CursorIcon::PointingHand;
+    }
+
     res.interact(Sense::click())
 }

@@ -6,7 +6,7 @@ use egui::{FontFamily, FontId, TextStyle};
 use egui_glow::egui_winit::winit::event::{ElementState, VirtualKeyCode, WindowEvent};
 use libmpv::events::PropertyData;
 use libmpv::{Mpv, MpvNode};
-use tokio::runtime::{Builder, Runtime};
+use tokio::runtime::Builder;
 use winit::event::MouseScrollDelta;
 
 use crate::pages;
@@ -17,7 +17,6 @@ pub struct MpvProperties {
     pub duration: f64,
     pub time_pos: f64,
     pub seekable_ranges: Vec<(f64, f64)>,
-    pub playback: bool,
     pub is_paused: bool,
     pub volume: i64,
 }
@@ -28,18 +27,26 @@ impl Default for MpvProperties {
             duration: 0.0,
             time_pos: 0.0,
             seekable_ranges: vec![(0.0, 0.0)],
-            playback: false,
             is_paused: false,
             volume: 100,
         }
     }
 }
 
+#[derive(PartialEq)]
+pub enum Page {
+    Overview,
+    Player,
+    Show(i64),
+}
+
 pub struct AppState {
+    pub page: Page,
     pub filepath: String,
     pub timestamp_last_mouse_movement: Instant,
     pub prev_seek: f64,
 }
+
 pub struct App {
     pub properties: MpvProperties,
     pub state: AppState,
@@ -58,6 +65,7 @@ impl App {
 
         Self {
             state: AppState {
+                page: Page::Overview,
                 filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"),
                 timestamp_last_mouse_movement: std::time::Instant::now(),
                 prev_seek: 0.0,
@@ -70,7 +78,7 @@ impl App {
 
     pub fn render(&mut self, ctx: &egui::Context, mpv: &Mpv) {
         let body = egui::CentralPanel::default()
-            .frame(if self.properties.playback {
+            .frame(if self.state.page == Page::Player {
                 egui::Frame::none()
             } else {
                 egui::Frame::none().fill(ctx.style().visuals.window_fill)
@@ -79,13 +87,10 @@ impl App {
                 egui::Frame::none()
                     .inner_margin(0.0)
                     .outer_margin(0.0)
-                    .show(ui, |ui| {
-                        if self.properties.playback {
-                            pages::Player::render(self, ui, mpv);
-                            return;
-                        }
-
-                        pages::Overview::render(self, ui, mpv);
+                    .show(ui, |ui| match self.state.page {
+                        Page::Overview => pages::Overview::render(self, ui, mpv),
+                        Page::Player => pages::Player::render(self, ui, mpv),
+                        Page::Show(id) => pages::Show::render(self, ui, mpv, id),
                     })
             });
 
@@ -95,13 +100,13 @@ impl App {
     }
 
     pub fn on_body_click(&mut self, mpv: &Mpv) {
-        if self.properties.playback {
+        if self.state.page == Page::Player {
             mpv.cycle_property("pause", true).unwrap();
         }
     }
 
     pub fn handle_player_keyboard_events(&mut self, event: &WindowEvent, mpv: &Mpv) {
-        if !self.properties.playback {
+        if self.state.page != Page::Player {
             return;
         }
 
@@ -134,7 +139,7 @@ impl App {
     }
 
     pub fn handle_player_mouse_events(&mut self, event: &WindowEvent, mpv: &Mpv) {
-        if !self.properties.playback {
+        if self.state.page != Page::Player {
             return;
         }
 
@@ -176,11 +181,11 @@ impl App {
     pub fn handle_mpv_events(&mut self, event: &libmpv::events::Event) {
         match event {
             libmpv::events::Event::PlaybackRestart => {
-                self.properties.playback = true;
+                self.state.page = Page::Player;
                 self.properties.is_paused = false;
             }
             libmpv::events::Event::EndFile(_) => {
-                self.properties.playback = false;
+                self.state.page = Page::Overview;
                 self.properties.is_paused = false;
             }
             libmpv::events::Event::PropertyChange {
@@ -306,7 +311,6 @@ fn configure_default_button(ctx: &egui::Context) {
     // spacing
     style.spacing.button_padding = egui::vec2(20.0, 8.0);
     style.spacing.item_spacing = egui::vec2(0.0, 12.0);
-
     style.visuals.window_fill = egui::Color32::from_rgb(15, 23, 42);
 
     // default stae

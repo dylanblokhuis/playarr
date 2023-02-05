@@ -2,7 +2,7 @@ use ::serde::de::DeserializeOwned;
 
 use crate::server::serde::Shows;
 
-use super::NetworkCache;
+use super::{serde::Episodes, NetworkCache};
 
 pub enum Fetch {
     Shows,
@@ -48,5 +48,8 @@ impl Client {
 
     pub fn get_all_series(&self) -> Option<Shows> {
         self.fetch::<Shows>(Fetch::Shows)
+    }
+    pub fn get_episodes(&self, id: i64) -> Option<Episodes> {
+        self.fetch::<Episodes>(Fetch::Episodes(id))
     }
 }

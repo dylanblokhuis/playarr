@@ -101,3 +101,37 @@ pub struct Statistics2 {
     pub release_groups: Vec<String>,
     pub percent_of_episodes: f64,
 }
+
+// episodes endpoint serdeified
+
+pub type Episodes = Vec<Episode>;
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Episode {
+    pub series_id: i64,
+    pub tvdb_id: i64,
+    pub episode_file_id: i64,
+    pub season_number: i64,
+    pub episode_number: i64,
+    pub title: String,
+    pub air_date: Option<String>,
+    pub air_date_utc: Option<String>,
+    pub overview: Option<String>,
+    pub has_file: bool,
+    pub monitored: bool,
+    pub absolute_episode_number: Option<i64>,
+    pub scene_absolute_episode_number: Option<i64>,
+    pub scene_episode_number: Option<i64>,
+    pub scene_season_number: Option<i64>,
+    pub unverified_scene_numbering: bool,
+    pub images: Vec<EpisodeImage>,
+    pub id: i64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EpisodeImage {
+    pub cover_type: String,
+    pub url: String,
+}

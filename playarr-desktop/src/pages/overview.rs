@@ -1,7 +1,7 @@
-use egui::{Color32, Ui, Vec2};
+use egui::{Color32, Sense, Ui, Vec2};
 use libmpv::Mpv;
 
-use crate::ui::App;
+use crate::ui::{App, Page};
 
 pub struct Overview;
 
@@ -19,7 +19,7 @@ impl Overview {
                     .show(ui, |ui| {
                         if let Some(shows) = shows {
                             for (index, show) in shows.iter().enumerate() {
-                                egui::Frame::none()
+                                let frame = egui::Frame::none()
                                     .fill(Color32::from_rgb(30, 41, 59))
                                     .inner_margin(5.0)
                                     .rounding(5.0)
@@ -43,6 +43,15 @@ impl Overview {
                                             }
                                         });
                                     });
+
+                                if frame.response.interact(Sense::click()).clicked() {
+                                    app.state.page = Page::Show(show.id);
+                                }
+
+                                if frame.response.interact(Sense::hover()).hovered() {
+                                    // change cursor icon egui::CursorIcon::PointingHand
+                                    ui.ctx().output().cursor_icon = egui::CursorIcon::PointingHand;
+                                }
 
                                 if (index + 1) % 3 == 0 {
                                     ui.end_row();
