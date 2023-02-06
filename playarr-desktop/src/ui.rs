@@ -37,7 +37,7 @@ impl Default for MpvProperties {
 pub enum Page {
     Overview,
     Player,
-    Show(i64),
+    Show { id: i64, season: Option<i64> },
 }
 
 pub struct AppState {
@@ -65,7 +65,7 @@ impl App {
 
         Self {
             state: AppState {
-                page: Page::Overview,
+                page: Page::Show { id: 13, season: None },
                 filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"),
                 timestamp_last_mouse_movement: std::time::Instant::now(),
                 prev_seek: 0.0,
@@ -90,7 +90,7 @@ impl App {
                     .show(ui, |ui| match self.state.page {
                         Page::Overview => pages::Overview::render(self, ui, mpv),
                         Page::Player => pages::Player::render(self, ui, mpv),
-                        Page::Show(id) => pages::Show::render(self, ui, mpv, id),
+                        Page::Show { id, season } => pages::Show::render(self, ui, mpv, id),
                     })
             });
 
