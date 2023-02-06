@@ -9,8 +9,11 @@ const app = new Application();
 // Catch all errors thrown by error()
 app.use(async (context, next) => {
 	try {
+		const start = Date.now();
 		console.log(`[${context.request.method}] - ${context.request.url}`);
 		await next();
+		const ms = Date.now() - start;
+		console.log(`Request took ${ms}ms`);
 	} catch (e) {
 		context.response.status = e.status;
 		context.response.body = e.message;
