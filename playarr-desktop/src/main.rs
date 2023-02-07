@@ -68,6 +68,7 @@ impl GlutinWindowContext {
 
         let context_attributes =
             glutin::context::ContextAttributesBuilder::new().build(Some(raw_window_handle));
+            
         // for surface creation.
         let (width, height): (u32, u32) = winit_window.inner_size().into();
         let surface_attributes =
@@ -88,6 +89,7 @@ impl GlutinWindowContext {
 
         let gl_context = gl_context.make_current(&gl_surface).unwrap();
 
+        // with_vsync
         gl_surface
             .set_swap_interval(
                 &gl_context,
@@ -173,6 +175,12 @@ fn main() {
     let (gl_window, gl) = create_display(&event_loop);
     let gl = std::sync::Arc::new(gl);
     let mut egui_glow = egui_glow::EguiGlow::new(&event_loop, gl.clone(), None);
+
+    egui_glow.egui_winit.set_pixels_per_point(
+        gl_window
+            .window()
+            .scale_factor() as f32,
+    );
 
     let mut mpv = Mpv::new().expect("Error while creating MPV");
     mpv.set_property("video-timing-offset", 0).unwrap();
@@ -294,6 +302,7 @@ fn main() {
             Event::LoopDestroyed => {
                 egui_glow.destroy();
                 *control_flow = ControlFlow::Exit;
+                return;
             }
             _ => (),
         }
