@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
-use egui::Sense;
-use egui::{FontFamily, FontId, TextStyle};
+use egui::{Color32, FontFamily, FontId, Rounding, TextStyle};
+use egui::{Sense, Stroke};
 use egui_glow::egui_winit::winit::event::{ElementState, VirtualKeyCode, WindowEvent};
 use libmpv::events::PropertyData;
 use libmpv::{Mpv, MpvNode};
@@ -37,12 +37,13 @@ impl Default for MpvProperties {
 pub enum Page {
     Overview,
     Player,
-    Show { id: i64, season: Option<i64> },
+    Show { id: i64, season: i64 },
+    Episode { id: i64 },
 }
 
 pub struct AppState {
+    pub server_url: String,
     pub page: Page,
-    pub filepath: String,
     pub timestamp_last_mouse_movement: Instant,
     pub prev_seek: f64,
 }
@@ -58,21 +59,21 @@ impl App {
     pub fn new(ctx: &egui::Context) -> Self {
         // setup egui styles
         configure_text_styles(ctx);
-        configure_default_button(ctx);
+        configure_widgets(ctx);
 
         let rt = Builder::new_multi_thread().enable_all().build().unwrap();
         let network_cache = NetworkCache::new(rt, ctx.clone());
 
         Self {
             state: AppState {
-                page: Page::Show { id: 13, season: None },
-                filepath: String::from("https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4"),
+                server_url: "http://localhost:8000".into(),
+                page: Page::Overview,
                 timestamp_last_mouse_movement: std::time::Instant::now(),
                 prev_seek: 0.0,
             },
             properties: MpvProperties::default(),
             client: Client::new(network_cache.clone()),
-            network_image_cache: NetworkImageCache::new(network_cache, ctx.clone())
+            network_image_cache: NetworkImageCache::new(network_cache, ctx.clone()),
         }
     }
 
@@ -90,7 +91,8 @@ impl App {
                     .show(ui, |ui| match self.state.page {
                         Page::Overview => pages::Overview::render(self, ui, mpv),
                         Page::Player => pages::Player::render(self, ui, mpv),
-                        Page::Show { id, season } => pages::Show::render(self, ui, mpv, id),
+                        Page::Show { id, season } => pages::Show::render(self, ui, mpv, id, season),
+                        Page::Episode { id } => pages::Episode::render(self, ui, mpv, id),
                     })
             });
 
@@ -289,7 +291,7 @@ fn configure_text_styles(ctx: &egui::Context) {
         (TextStyle::Body, FontId::new(16.0, FontFamily::Proportional)),
         (
             TextStyle::Button,
-            FontId::new(18.0, FontFamily::Name("Inter-SemiBold".into())),
+            FontId::new(16.0, FontFamily::Name("Inter-SemiBold".into())),
         ),
         (TextStyle::Small, FontId::new(8.0, FontFamily::Proportional)),
         (
@@ -305,30 +307,32 @@ fn configure_text_styles(ctx: &egui::Context) {
     ctx.set_fonts(fonts);
 }
 
-fn configure_default_button(ctx: &egui::Context) {
+fn configure_widgets(ctx: &egui::Context) {
     let mut style = (*ctx.style()).clone();
 
     // spacing
-    style.spacing.button_padding = egui::vec2(20.0, 8.0);
+    style.spacing.button_padding = egui::vec2(15.0, 5.0);
     style.spacing.item_spacing = egui::vec2(0.0, 12.0);
-    style.visuals.window_fill = egui::Color32::from_rgb(15, 23, 42);
+
+    style.visuals.window_fill = Color32::from_rgb(15, 23, 42);
 
     // default stae
-    style.visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(99, 102, 241);
+    style.visuals.widgets.inactive.bg_fill = Color32::from_rgb(99, 102, 241);
 
     // hovered widgets
     style.visuals.widgets.hovered.expansion = 0.0;
-    style.visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(79, 70, 229);
-    style.visuals.widgets.hovered.bg_stroke =
-        egui::Stroke::new(0.0, egui::Color32::from_rgb(79, 70, 229));
+    style.visuals.widgets.hovered.bg_fill = Color32::from_rgb(79, 70, 229);
+    style.visuals.widgets.hovered.bg_stroke = Stroke::new(0.0, Color32::from_rgb(79, 70, 229));
 
     // active widgets
-    style.visuals.widgets.active.bg_fill = egui::Color32::from_rgb(58, 48, 226);
-    style.visuals.widgets.active.bg_stroke =
-        egui::Stroke::new(0.0, egui::Color32::from_rgb(58, 48, 226));
+    style.visuals.widgets.active.bg_fill = Color32::from_rgb(58, 48, 226);
+    style.visuals.widgets.active.bg_stroke = Stroke::new(0.0, Color32::from_rgb(58, 48, 226));
     style.visuals.widgets.active.expansion = 0.0;
 
-    style.visuals.override_text_color = Some(egui::Color32::from_rgb(255, 255, 255));
+    style.visuals.override_text_color = Some(Color32::from_rgb(255, 255, 255));
+
+    style.visuals.widgets.noninteractive.bg_stroke =
+        Stroke::new(1.0, Color32::from_rgb(55, 65, 81));
 
     ctx.set_style(style);
 }

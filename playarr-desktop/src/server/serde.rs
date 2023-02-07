@@ -59,7 +59,7 @@ pub struct AlternateTitle {
 pub struct Image {
     pub cover_type: String,
     pub url: String,
-    pub remote_url: String,
+    pub remote_url: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -134,4 +134,100 @@ pub struct Episode {
 pub struct EpisodeImage {
     pub cover_type: String,
     pub url: String,
+}
+
+// ---------
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EpisodeDetail {
+    pub series_id: i64,
+    pub tvdb_id: i64,
+    pub episode_file_id: i64,
+    pub season_number: i64,
+    pub episode_number: i64,
+    pub title: String,
+    pub air_date: String,
+    pub air_date_utc: String,
+    pub overview: Option<String>,
+    pub episode_file: EpisodeFile,
+    pub has_file: bool,
+    pub monitored: bool,
+    pub absolute_episode_number: Option<i64>,
+    pub scene_absolute_episode_number: Option<i64>,
+    pub scene_episode_number: Option<i64>,
+    pub scene_season_number: Option<i64>,
+    pub unverified_scene_numbering: bool,
+    pub images: Vec<Image>,
+    pub id: i64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EpisodeFile {
+    pub series_id: i64,
+    pub season_number: i64,
+    pub relative_path: String,
+    pub path: String,
+    pub size: i64,
+    pub date_added: String,
+    pub scene_name: String,
+    pub release_group: String,
+    pub language: Language,
+    pub quality: Quality,
+    pub media_info: MediaInfo,
+    pub quality_cutoff_not_met: bool,
+    pub language_cutoff_not_met: bool,
+    pub id: i64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Language {
+    pub id: i64,
+    pub name: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Quality {
+    pub quality: Quality2,
+    pub revision: Revision,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Quality2 {
+    pub id: i64,
+    pub name: String,
+    pub source: String,
+    pub resolution: i64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Revision {
+    pub version: i64,
+    pub real: i64,
+    pub is_repack: bool,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaInfo {
+    pub audio_bitrate: i64,
+    pub audio_channels: f64,
+    pub audio_codec: String,
+    pub audio_languages: String,
+    pub audio_stream_count: i64,
+    pub video_bit_depth: i64,
+    pub video_bitrate: i64,
+    pub video_codec: String,
+    pub video_fps: f64,
+    pub video_dynamic_range: String,
+    pub video_dynamic_range_type: String,
+    pub resolution: String,
+    pub run_time: String,
+    pub scan_type: String,
+    pub subtitles: String,
 }

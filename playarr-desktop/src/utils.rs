@@ -15,3 +15,11 @@ pub fn seconds_to_video_duration(seconds: f64) -> String {
 
     format!("{}:{}", duration.num_minutes(), seconds_padded)
 }
+
+pub fn season_or_specials_label(season_nr: i64) -> String {
+    if season_nr != 0 {
+        format!("Season {season_nr}")
+    } else {
+        "Specials".to_string()
+    }
+}

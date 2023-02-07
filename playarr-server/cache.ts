@@ -1,4 +1,4 @@
-import {Zoic} from "zoic";
+import { Zoic } from "zoic";
 
 export const cache = new Zoic({
 	cache: 'LFU',

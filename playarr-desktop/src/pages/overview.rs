@@ -1,4 +1,4 @@
-use egui::{style::Margin, Color32, Sense, Ui, Vec2};
+use egui::{style::Margin, Sense, Ui, Vec2};
 use libmpv::Mpv;
 
 use crate::ui::{App, Page};
@@ -45,9 +45,10 @@ impl Overview {
                                                 .find(|image| image.cover_type == "poster");
 
                                             let aspect = 0.68;
-                                            if let Some(image) = app
-                                                .network_image_cache
-                                                .fetch_image(poster_url.unwrap().remote_url.clone())
+                                            if let Some(image) =
+                                                app.network_image_cache.fetch_image(
+                                                    poster_url.unwrap().remote_url.clone().unwrap(),
+                                                )
                                             {
                                                 let desired_width = ui.available_width();
                                                 let desired_height = desired_width / aspect;
@@ -67,9 +68,17 @@ impl Overview {
                                     });
 
                                     if frame.response.interact(Sense::click()).clicked() {
+                                        let current_season = show.seasons.iter().find(|season| {
+                                            season.statistics.episode_file_count != 0
+                                        });
+
                                         app.state.page = Page::Show {
                                             id: show.id,
-                                            season: None,
+                                            season: if let Some(season) = current_season {
+                                                season.season_number
+                                            } else {
+                                                show.seasons.first().unwrap().season_number
+                                            },
                                         };
                                     }
 

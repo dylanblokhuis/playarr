@@ -2,7 +2,10 @@ use ::serde::de::DeserializeOwned;
 
 use crate::server::serde::Shows;
 
-use super::{serde::Episodes, NetworkCache};
+use super::{
+    serde::{EpisodeDetail, Episodes},
+    NetworkCache,
+};
 
 pub enum Fetch {
     Shows,
@@ -14,7 +17,7 @@ fn get_url_for_fetch(fetch: &Fetch) -> String {
     match fetch {
         Fetch::Shows => "http://localhost:8000/shows".into(),
         Fetch::Episodes(id) => format!("http://localhost:8000/shows/{id}/episodes"),
-        Fetch::Episode(id) => format!("http://localhost:8000/episode/{id}"),
+        Fetch::Episode(id) => format!("http://localhost:8000/episodes/{id}"),
     }
 }
 
@@ -51,5 +54,8 @@ impl Client {
     }
     pub fn get_episodes(&self, id: i64) -> Option<Episodes> {
         self.fetch::<Episodes>(Fetch::Episodes(id))
+    }
+    pub fn get_episode(&self, id: i64) -> Option<EpisodeDetail> {
+        self.fetch::<EpisodeDetail>(Fetch::Episode(id))
     }
 }
