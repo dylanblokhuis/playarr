@@ -57,7 +57,7 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v3
         with:
-          context: .
+          context: ./playarr-server
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/dylanblokhuis/playarr-server:master
