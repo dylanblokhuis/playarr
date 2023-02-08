@@ -7,9 +7,23 @@ ENV DENO_SQLITE_PATH=/usr/lib/x86_64-linux-gnu/libsqlite3.so.0
 FROM deno-${TARGETARCH}
 EXPOSE 8000
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=unstable apt-get -yq --no-install-recommends install sqlite3 curl && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
+RUN apt update && apt install -y wget curl build-essential tclsh
+
+# dl sqlite3
+RUN \
+  wget \
+  -O sqlite.tar.gz \
+  https://www.sqlite.org/src/tarball/sqlite.tar.gz?r=release && \
+  tar xvfz sqlite.tar.gz
+
+# Configure and make SQLite3 binary
+RUN \
+  ./sqlite/configure --prefix=/usr && \
+  make && \
+  make install \
+  && \
+  # Smoke test
+  sqlite3 --version
 
 WORKDIR /app
 
