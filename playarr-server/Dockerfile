@@ -7,7 +7,9 @@ ENV DENO_SQLITE_PATH=/usr/lib/x86_64-linux-gnu/libsqlite3.so.0
 FROM deno-${TARGETARCH}
 EXPOSE 8000
 
-RUN apt-get update && apt-get install -y curl sqlite3 libsqlite3-dev
+RUN apt-get update && \
+    DEBIAN_FRONTEND=unstable apt-get -yq --no-install-recommends install sqlite3 curl && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
 
 WORKDIR /app
 
