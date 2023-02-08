@@ -8,6 +8,7 @@
   },
   "tasks": {
     "dev": "deno run --allow-net --allow-read --watch --allow-env --allow-ffi --unstable app.ts",
+    "start": "deno run --allow-net --allow-read --allow-env --allow-ffi --unstable app.ts",
     "migrate": "deno run --allow-env --allow-read --allow-ffi --unstable tasks/migrate.ts",
     "create_migration": "deno run --allow-read --allow-write tasks/create_migration.ts",
     "create_package": "deno run --allow-read --allow-write --allow-run tasks/create_package.ts"

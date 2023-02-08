@@ -7,5 +7,5 @@ setupMiddleware(app);
 setupRouters(app);
 
 const port = 8000;
-console.log(`istening on port ${port}`);
-await app.listen({ port });
+console.log(`Listening on port ${port}`);
+await app.listen({ port, hostname: "0.0.0.0" });
