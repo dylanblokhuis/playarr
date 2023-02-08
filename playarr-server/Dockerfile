@@ -7,7 +7,7 @@ ENV DENO_SQLITE_PATH=/usr/lib/x86_64-linux-gnu/libsqlite3.so.0
 FROM deno-${TARGETARCH}
 EXPOSE 8000
 
-RUN apt update && apt install -y wget curl build-essential tclsh
+RUN apt update && TZ=Etc/UTC apt install -y wget curl build-essential tclsh
 
 # dl sqlite3
 RUN \
@@ -24,6 +24,9 @@ RUN \
   && \
   # Smoke test
   sqlite3 --version
+
+# Purge build dependencies
+RUN apt purge -y wget curl build-essential tclsh
 
 WORKDIR /app
 
