@@ -7,7 +7,10 @@ ENV DENO_SQLITE_PATH=/usr/lib/x86_64-linux-gnu/libsqlite3.so.0
 FROM deno-${TARGETARCH}
 EXPOSE 8000
 
-RUN apt update && TZ=Etc/UTC apt install -y wget curl build-essential tclsh
+ENV TZ=Europe/Amsterdam
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN apt update && apt install -y wget curl build-essential tclsh
 
 # dl sqlite3
 RUN \
