@@ -2,7 +2,7 @@
   "imports": {
     "std/": "https://deno.land/std@0.174.0/",
     "oak": "https://deno.land/x/oak@v11.1.0/mod.ts",
-    "sqlite": "https://deno.land/x/sqlite3@0.7.3/mod.ts",
+    "sqlite": "https://deno.land/x/sqlite3@0.8.0/mod.ts",
     "zoic": "https://deno.land/x/zoic@v1.0.5/zoic/zoic.ts",
     "kysely": "npm:kysely@0.23.4"
   },

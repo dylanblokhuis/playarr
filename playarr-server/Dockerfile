@@ -1,8 +1,8 @@
 FROM lukechannings/deno:v1.30.3 as deno-arm64
-ENV DENO_SQLITE_PATH=/usr/lib/aarch64-linux-gnu/libsqlite3.so.0
+ENV DENO_SQLITE_PATH=/usr/lib/libsqlite3.so
 
 FROM denoland/deno:1.30.3 as deno-amd64
-ENV DENO_SQLITE_PATH=/usr/lib/x86_64-linux-gnu/libsqlite3.so.0
+ENV DENO_SQLITE_PATH=/usr/lib/libsqlite3.so
 
 FROM deno-${TARGETARCH}
 EXPOSE 8000
