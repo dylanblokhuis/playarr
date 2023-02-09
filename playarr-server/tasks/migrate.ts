@@ -1,9 +1,9 @@
-import {Migration, Migrator} from "kysely";
+import { Migration, Migrator } from "kysely";
 import * as path from "std/path/mod.ts";
 
 import db from "../db/instance.ts";
 
-async function migrate() {
+export async function migrate() {
 	const migrator = new Migrator({
 		db: db,
 		provider: {
@@ -15,9 +15,9 @@ async function migrate() {
 				const migrationFiles = await Deno.readDir(migrationsDirectory);
 
 				for await (const migration of migrationFiles) {
-					const {up, down} = await import(
+					const { up, down } = await import(
 						path.join(migrationsDirectory, `./${migration.name}`)
-						);
+					);
 
 					migrations[migration.name] = {
 						up,
@@ -30,7 +30,7 @@ async function migrate() {
 		},
 	});
 
-	const {error, results} = await migrator.migrateToLatest();
+	const { error, results } = await migrator.migrateToLatest();
 	if (results && results.length > 0) {
 		console.log(results);
 	}
