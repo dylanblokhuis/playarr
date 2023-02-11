@@ -6,10 +6,7 @@ jobs:
   release:
     name: Publish binary for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
+    permissions: write-all
     strategy:
       fail-fast: false
       matrix:
