@@ -25,5 +25,7 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: Move
+        run: cd playarr-desktop
       - name: Build
         run: cargo build --release --locked
