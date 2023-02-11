@@ -34,15 +34,21 @@ jobs:
 
       # macos
       - name: 'Install MPV'
-        if: matrix.os == 'windows-2022'
+        if: matrix.os == 'macos-12'
         run: |
           brew update
           brew install mpv
 
+      - name: add custom deb repository
+        uses: myci-actions/add-deb-repo@10
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          repo: deb https://www.deb-multimedia.org bullseye main non-free
+          repo-name: multimedia
       - name: 'Install MPV'
         if: matrix.os == 'ubuntu-latest'
         run: |
-          apt update
+          sudo apt update
           sudo apt install mpv -y
 
       - name: Build
