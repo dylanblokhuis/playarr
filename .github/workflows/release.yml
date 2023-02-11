@@ -6,6 +6,10 @@ jobs:
   release:
     name: Publish binary for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -27,8 +31,7 @@ jobs:
       - name: Build
         run:  cd playarr-desktop && cargo build --release --locked
       - name: Upload binaries to release
-        if: github.event_name == 'release'
-        uses: svenstaro/upload-release-action@2.4.0
+        uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: playarr-desktop/target/release/${{ matrix.artifact_name }}
