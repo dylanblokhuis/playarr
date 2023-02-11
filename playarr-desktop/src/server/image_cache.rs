@@ -3,6 +3,7 @@ use std::sync::{Arc, RwLock};
 
 use egui_extras::RetainedImage;
 
+use super::network_cache::FetchResult;
 use super::NetworkCache;
 
 #[derive(Clone)]
@@ -28,25 +29,29 @@ impl NetworkImageCache {
             return Some(image.clone());
         }
 
-        if let Some(bytes) = self.cache.fetch(url.clone()) {
-            if let Some(is_uploading) = self.is_uploading.read().unwrap().get(&url) {
-                if *is_uploading {
-                    return None;
+        match self.cache.fetch(url.clone()) {
+            FetchResult::Ok(bytes) => {
+                if let Some(is_uploading) = self.is_uploading.read().unwrap().get(&url) {
+                    if *is_uploading {
+                        return None;
+                    }
                 }
+                let is_on_gpu = self.is_on_gpu.clone();
+                let is_uploading = self.is_uploading.clone();
+                let url2 = url.clone();
+                let ctx = self.ctx.clone();
+                std::thread::spawn(move || {
+                    let image = Arc::new(
+                        egui_extras::RetainedImage::from_image_bytes(url2.clone(), &bytes).unwrap(),
+                    );
+                    is_on_gpu.write().unwrap().insert(url2.clone(), image);
+                    is_uploading.write().unwrap().insert(url2, false);
+                    ctx.request_repaint();
+                });
+                self.is_uploading.write().unwrap().insert(url, true);
             }
-            let is_on_gpu = self.is_on_gpu.clone();
-            let is_uploading = self.is_uploading.clone();
-            let url2 = url.clone();
-            let ctx = self.ctx.clone();
-            std::thread::spawn(move || {
-                let image = Arc::new(
-                    egui_extras::RetainedImage::from_image_bytes(url2.clone(), &bytes).unwrap(),
-                );
-                is_on_gpu.write().unwrap().insert(url2.clone(), image);
-                is_uploading.write().unwrap().insert(url2, false);
-                ctx.request_repaint();
-            });
-            self.is_uploading.write().unwrap().insert(url, true);
+            FetchResult::Error(_) => return None,
+            FetchResult::Loading => return None,
         }
 
         None

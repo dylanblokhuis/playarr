@@ -1,29 +1,44 @@
-use egui::{style::Margin, Label, Response, RichText, Sense, Ui, Vec2};
+use egui::{style::Margin, RichText, Sense, Ui, Vec2};
 use libmpv::{FileState, Mpv};
 
-use crate::{
-    ui::{App, Page},
-    utils::season_or_specials_label,
-    widgets::{
-        breadcrumbs,
-        icons::{icon, CHEVRON_LEFT_ICON},
-    },
-};
+use crate::{server::FetchResult, ui::App, utils::season_or_specials_label, widgets::breadcrumbs};
 
-pub struct Episode;
+use super::{Page, Pages};
 
-impl Episode {
-    pub fn render(app: &mut App, ui: &mut Ui, mpv: &Mpv, id: i64) {
-        let episode = app.client.get_episode(id);
-        let shows = app.client.get_all_series();
-        let Some(episode) = episode else {
-          ui.label("Loading..");
-          return;
+pub struct Episode {
+    pub id: i64,
+}
+
+impl Page for Episode {
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn render(app: &mut App, ui: &mut Ui, mpv: &Mpv) {
+        let id = app.get_page_state::<Self>().id;
+        let episode = match app.client.get_episode(id) {
+            FetchResult::Loading => {
+                ui.label("Loading..");
+                return;
+            }
+            FetchResult::Error(msg) => {
+                ui.label(msg);
+                return;
+            }
+            FetchResult::Ok(episode) => episode,
         };
-        let Some(shows) = shows else {
-            ui.label("Loading..");
-            return;
+        let shows = match app.client.get_all_series() {
+            FetchResult::Loading => {
+                ui.label("Loading..");
+                return;
+            }
+            FetchResult::Error(msg) => {
+                ui.label(msg);
+                return;
+            }
+            FetchResult::Ok(shows) => shows,
         };
+
         let show = shows
             .iter()
             .find(|s| s.id == episode.episode_file.series_id)
@@ -44,10 +59,10 @@ impl Episode {
         )
         .clicked()
         {
-            app.state.page = Page::Show {
+            app.navigate(Pages::Show {
                 id: show.id,
                 season: episode.episode_file.season_number,
-            };
+            });
         }
 
         egui::Frame::none()
@@ -93,7 +108,8 @@ impl Episode {
                                     if ui.button("Play").clicked() {
                                         let watch_url = format!(
                                             "{}/episodes/{}/watch",
-                                            app.state.server_url, episode.episode_file.id
+                                            app.config.read().unwrap().server_address,
+                                            episode.id
                                         );
                                         println!("play episode: {}", watch_url);
                                         mpv.playlist_load_files(&[(

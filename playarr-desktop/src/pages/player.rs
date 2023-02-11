@@ -7,10 +7,17 @@ use egui::*;
 use egui::{style::Margin, Ui};
 use libmpv::Mpv;
 
+use super::Page;
+
+#[derive(Clone)]
 pub struct Player;
 
-impl Player {
-    pub fn render(app: &mut App, ui: &mut Ui, mpv: &Mpv) {
+impl Page for Player {
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn render(app: &mut App, ui: &mut Ui, mpv: &Mpv) {
         if app
             .state
             .timestamp_last_mouse_movement

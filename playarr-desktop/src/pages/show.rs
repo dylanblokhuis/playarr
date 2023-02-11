@@ -1,25 +1,37 @@
-use egui::{style::Margin, Label, Response, RichText, Sense, Ui, Vec2};
+use egui::{style::Margin, RichText, Sense, Ui, Vec2};
 use libmpv::Mpv;
 
-use crate::{
-    ui::{App, Page},
-    utils::season_or_specials_label,
-    widgets::{
-        breadcrumbs,
-        icons::{icon, CHEVRON_LEFT_ICON},
-    },
-};
+use crate::{server::FetchResult, ui::App, utils::season_or_specials_label, widgets::breadcrumbs};
 
-pub struct Show;
+use super::{Page, Pages};
 
-impl Show {
-    pub fn render(app: &mut App, ui: &mut Ui, mpv: &Mpv, id: i64, season_nr: i64) {
-        let shows = app.client.get_all_series();
+#[derive(Clone)]
+pub struct Show {
+    pub id: i64,
+    pub season: i64,
+}
 
-        let Some(shows) = shows else {
-            ui.label("Loading..");
-            return;
+impl Page for Show {
+    fn as_any(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn render(app: &mut App, ui: &mut Ui, mpv: &Mpv) {
+        let id = app.get_page_state::<Self>().id;
+        let season_nr = app.get_page_state::<Self>().season;
+
+        let shows = match app.client.get_all_series() {
+            FetchResult::Loading => {
+                ui.label("Loading..");
+                return;
+            }
+            FetchResult::Error(msg) => {
+                ui.label(msg);
+                return;
+            }
+            FetchResult::Ok(shows) => shows,
         };
+
         let mut show = shows.iter().find(|s| s.id == id).unwrap().to_owned();
 
         if breadcrumbs(
@@ -35,7 +47,7 @@ impl Show {
         )
         .clicked()
         {
-            app.state.page = Page::Overview;
+            app.navigate(Pages::Overview);
         }
 
         egui::Frame::none()
@@ -102,17 +114,24 @@ impl Show {
                                                     )
                                                     .clicked()
                                                 {
-                                                    app.state.page = Page::Show {
+                                                    app.navigate(Pages::Show {
                                                         id,
                                                         season: season.season_number,
-                                                    }
+                                                    })
                                                 }
                                             });
                                     });
 
-                                    let Some(episodes) = app.client.get_episodes(id) else {
-                                        ui.label("Loading..");
-                                        return;
+                                    let episodes = match app.client.get_episodes(id) {
+                                        FetchResult::Loading => {
+                                            ui.label("Loading..");
+                                            return;
+                                        }
+                                        FetchResult::Error(msg) => {
+                                            ui.label(msg);
+                                            return;
+                                        }
+                                        FetchResult::Ok(episodes) => episodes,
                                     };
 
                                     egui::Grid::new("episodes")
@@ -173,8 +192,7 @@ impl Show {
                                                     .interact(Sense::click());
 
                                                 if wrapper.clicked() && episode.has_file {
-                                                    app.state.page =
-                                                        Page::Episode { id: episode.id }
+                                                    app.navigate(Pages::Episode { id: episode.id })
                                                 }
 
                                                 if (index + 1) % 4 == 0 {

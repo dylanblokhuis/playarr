@@ -1,15 +1,18 @@
 use std::collections::HashMap;
+use std::io::{Read, Write};
+use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
-use egui::{Color32, FontFamily, FontId, Rounding, TextStyle};
+use egui::{Color32, FontFamily, FontId, TextStyle};
 use egui::{Sense, Stroke};
 use egui_glow::egui_winit::winit::event::{ElementState, VirtualKeyCode, WindowEvent};
 use libmpv::events::PropertyData;
 use libmpv::{Mpv, MpvNode};
+use serde::{Deserialize, Serialize};
 use tokio::runtime::Builder;
 use winit::event::MouseScrollDelta;
 
-use crate::pages;
+use crate::pages::{self, Page, Pages};
 use crate::server::{Client, NetworkCache, NetworkImageCache};
 
 #[derive(Debug)]
@@ -33,19 +36,16 @@ impl Default for MpvProperties {
     }
 }
 
-#[derive(PartialEq)]
-pub enum Page {
-    Overview,
-    Player,
-    Show { id: i64, season: i64 },
-    Episode { id: i64 },
-}
-
 pub struct AppState {
-    pub server_url: String,
-    pub page: Page,
+    page: Pages,
+    page_state: Box<dyn Page>,
     pub timestamp_last_mouse_movement: Instant,
     pub prev_seek: f64,
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct Config {
+    pub server_address: String,
 }
 
 pub struct App {
@@ -53,6 +53,7 @@ pub struct App {
     pub state: AppState,
     pub client: Client,
     pub network_image_cache: NetworkImageCache,
+    pub config: Arc<RwLock<Config>>,
 }
 
 impl App {
@@ -63,23 +64,38 @@ impl App {
 
         let rt = Builder::new_multi_thread().enable_all().build().unwrap();
         let network_cache = NetworkCache::new(rt, ctx.clone());
+        let config = if let Some(config) = load_config() {
+            config
+        } else {
+            Config {
+                server_address: String::new(),
+            }
+        };
+
+        let mut page = Pages::Onboarding;
+        if !config.server_address.is_empty() {
+            page = Pages::Overview;
+        }
+        let page_state = page.get_default_state();
+        let config = Arc::new(RwLock::new(config));
 
         Self {
             state: AppState {
-                server_url: "http://localhost:8000".into(),
-                page: Page::Overview,
+                page,
+                page_state,
                 timestamp_last_mouse_movement: std::time::Instant::now(),
                 prev_seek: 0.0,
             },
             properties: MpvProperties::default(),
-            client: Client::new(network_cache.clone()),
+            client: Client::new(config.clone(), network_cache.clone()),
             network_image_cache: NetworkImageCache::new(network_cache, ctx.clone()),
+            config,
         }
     }
 
     pub fn render(&mut self, ctx: &egui::Context, mpv: &Mpv) {
         let body = egui::CentralPanel::default()
-            .frame(if self.state.page == Page::Player {
+            .frame(if self.state.page == Pages::Player {
                 egui::Frame::none()
             } else {
                 egui::Frame::none().fill(ctx.style().visuals.window_fill)
@@ -89,10 +105,11 @@ impl App {
                     .inner_margin(0.0)
                     .outer_margin(0.0)
                     .show(ui, |ui| match self.state.page {
-                        Page::Overview => pages::Overview::render(self, ui, mpv),
-                        Page::Player => pages::Player::render(self, ui, mpv),
-                        Page::Show { id, season } => pages::Show::render(self, ui, mpv, id, season),
-                        Page::Episode { id } => pages::Episode::render(self, ui, mpv, id),
+                        Pages::Onboarding => pages::Onboarding::render(self, ui, mpv),
+                        Pages::Overview => pages::Overview::render(self, ui, mpv),
+                        Pages::Player => pages::Player::render(self, ui, mpv),
+                        Pages::Show { id: _, season: _ } => pages::Show::render(self, ui, mpv),
+                        Pages::Episode { id: _ } => pages::Episode::render(self, ui, mpv),
                     })
             });
 
@@ -101,14 +118,23 @@ impl App {
         }
     }
 
+    pub fn get_page(&self) -> Pages {
+        self.state.page.clone()
+    }
+
+    pub fn navigate(&mut self, page: Pages) {
+        self.state.page = page.clone();
+        self.state.page_state = page.get_default_state();
+    }
+
     pub fn on_body_click(&mut self, mpv: &Mpv) {
-        if self.state.page == Page::Player {
+        if self.state.page == Pages::Player {
             mpv.cycle_property("pause", true).unwrap();
         }
     }
 
     pub fn handle_player_keyboard_events(&mut self, event: &WindowEvent, mpv: &Mpv) {
-        if self.state.page != Page::Player {
+        if self.state.page != Pages::Player {
             return;
         }
 
@@ -141,7 +167,7 @@ impl App {
     }
 
     pub fn handle_player_mouse_events(&mut self, event: &WindowEvent, mpv: &Mpv) {
-        if self.state.page != Page::Player {
+        if self.state.page != Pages::Player {
             return;
         }
 
@@ -183,11 +209,11 @@ impl App {
     pub fn handle_mpv_events(&mut self, event: &libmpv::events::Event) {
         match event {
             libmpv::events::Event::PlaybackRestart => {
-                self.state.page = Page::Player;
+                self.state.page = Pages::Player;
                 self.properties.is_paused = false;
             }
             libmpv::events::Event::EndFile(_) => {
-                self.state.page = Page::Overview;
+                self.state.page = Pages::Overview;
                 self.properties.is_paused = false;
             }
             libmpv::events::Event::PropertyChange {
@@ -245,6 +271,43 @@ impl App {
             _ => {}
         }
     }
+
+    pub fn get_page_state_mut<T>(&mut self) -> &mut T
+    where
+        T: 'static,
+    {
+        self.state
+            .page_state
+            .as_any()
+            .downcast_mut::<T>()
+            .expect("Downcasted wrong type")
+    }
+    pub fn get_page_state<T>(&mut self) -> &T
+    where
+        T: 'static,
+    {
+        self.state
+            .page_state
+            .as_any()
+            .downcast_ref::<T>()
+            .expect("Downcasted wrong type")
+    }
+
+    pub fn save_config_to_disk(&self) {
+        let config = self.config.read().unwrap();
+        let config = toml::to_string(&config.clone()).unwrap();
+        let mut file = std::fs::File::create("playarr.toml").unwrap();
+        file.write_all(config.as_bytes()).unwrap();
+    }
+}
+
+fn load_config() -> Option<Config> {
+    let Ok(mut file) = std::fs::File::open("playarr.toml") else {
+        return None
+    };
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).unwrap();
+    Some(toml::from_str::<Config>(&contents).unwrap())
 }
 
 fn configure_text_styles(ctx: &egui::Context) {
