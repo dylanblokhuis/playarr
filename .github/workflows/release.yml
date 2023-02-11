@@ -27,8 +27,24 @@ jobs:
         with:
           toolchain: stable
           override: true
+        
+      # windows specific
       - uses: seanmiddleditch/gha-setup-vsdevenv@master
         if: matrix.os == 'windows-2022' 
+
+      # macos
+      - name: 'Install MPV'
+        if: matrix.os == 'windows-2022'
+        run: |
+          brew update
+          brew install mpv
+
+      - name: 'Install MPV'
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          apt update
+          sudo apt install mpv -y
+
       - name: Build
         run:  cd playarr-desktop && cargo build --release --locked
       - name: Upload binaries to release
