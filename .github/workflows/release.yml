@@ -1,8 +1,6 @@
 on:
-  push:
-    branches: [ "master" ]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
+  release:
+    types: [published]
 
 jobs:
   release:
@@ -18,12 +16,21 @@ jobs:
           #   asset_name: playarr-macos-amd64
           - os: windows-2022
             artifact_name: playarr.exe
-            asset_name: meilisearch-windows-amd64.exe
+            asset_name: playarr.exe
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
+      - uses: seanmiddleditch/gha-setup-vsdevenv@master
       - name: Build
         run:  cd playarr-desktop && cargo build --release --locked
+      - name: Upload binaries to release
+        if: github.event_name == 'release'
+        uses: svenstaro/upload-release-action@2.4.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: playarr-desktop/target/release/${{ matrix.artifact_name }}
+          asset_name: ${{ matrix.asset_name }}
+          tag: ${{ github.ref }}
