@@ -10,14 +10,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022]
+        os: [macos-12, ubuntu-latest, windows-2022]
         include:
-          # - os: macos-12
-          #   artifact_name: playarr
-          #   asset_name: playarr-macos-amd64
+          - os: macos-12
+            artifact_name: playarr
+            asset_name: playarr-macos-amd64
+          - os: ubuntu-latest
+            artifact_name: playarr
+            asset_name: playarr-linux-amd64
           - os: windows-2022
             artifact_name: playarr.exe
-            asset_name: playarr.exe
+            asset_name: playarr-windows-amd64.exe
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
@@ -25,6 +28,7 @@ jobs:
           toolchain: stable
           override: true
       - uses: seanmiddleditch/gha-setup-vsdevenv@master
+        if: matrix.os == 'windows-2022' 
       - name: Build
         run:  cd playarr-desktop && cargo build --release --locked
       - name: Upload binaries to release
