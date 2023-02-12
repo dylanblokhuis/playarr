@@ -12,7 +12,7 @@ impl Page for Overview {
         self
     }
 
-    fn render(app: &mut App, ui: &mut Ui, mpv: &Mpv) {
+    fn render(app: &mut App, ui: &mut Ui, _mpv: &Mpv) {
         let shows = match app.client.get_all_series() {
             FetchResult::Loading => {
                 ui.label("Loading..");

@@ -1,7 +1,4 @@
-use chrono::Utc;
-use egui::{
-    style::Margin, Color32, FontId, RichText, Sense, Style, TextStyle, TextureOptions, Ui, Vec2,
-};
+use egui::{style::Margin, RichText, Sense, TextStyle, Ui, Vec2};
 use libmpv::Mpv;
 
 use crate::{server::FetchResult, ui::App, utils::season_or_specials_label, widgets::breadcrumbs};
@@ -19,7 +16,7 @@ impl Page for Show {
         self
     }
 
-    fn render(app: &mut App, ui: &mut Ui, mpv: &Mpv) {
+    fn render(app: &mut App, ui: &mut Ui, _mpv: &Mpv) {
         let id = app.get_page_state::<Self>().id;
         let season_nr = app.get_page_state::<Self>().season;
 

@@ -1,4 +1,4 @@
-use egui::{style::Margin, Color32, Frame, Label, Response, RichText, Sense, TextEdit, Ui, Vec2};
+use egui::{Color32, Frame, RichText, TextEdit, Ui, Vec2};
 use libmpv::Mpv;
 
 use crate::{server::FetchResult, ui::App};
@@ -16,7 +16,7 @@ impl Page for Onboarding {
         self
     }
 
-    fn render(app: &mut App, ui: &mut Ui, mpv: &Mpv) {
+    fn render(app: &mut App, ui: &mut Ui, _mpv: &Mpv) {
         Frame::none().inner_margin(35.0).show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.heading("Playarr");
