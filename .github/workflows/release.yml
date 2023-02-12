@@ -40,9 +40,9 @@ jobs:
           brew install mpv
         
       # ubuntu
-      - name: Meson
-        uses: BSFishy/meson-build@v1.0.3
-        if: matrix.os == 'ubuntu-latest'
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10' 
 
       - name: Setup Ninja
         uses: ashutoshvarma/setup-ninja@master
@@ -53,13 +53,14 @@ jobs:
 
       - name: Test build deps
         run: |
+          pip install meson
           meson -v
           ninja --version
 
       # generic
       - name: Build
         run:  cd playarr-desktop && cargo build --release --locked
-        
+
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
