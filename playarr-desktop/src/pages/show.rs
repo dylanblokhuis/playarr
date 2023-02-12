@@ -1,4 +1,7 @@
-use egui::{style::Margin, RichText, Sense, Ui, Vec2};
+use chrono::Utc;
+use egui::{
+    style::Margin, Color32, FontId, RichText, Sense, Style, TextStyle, TextureOptions, Ui, Vec2,
+};
 use libmpv::Mpv;
 
 use crate::{server::FetchResult, ui::App, utils::season_or_specials_label, widgets::breadcrumbs};
@@ -122,6 +125,8 @@ impl Page for Show {
                                             });
                                     });
 
+                                    ui.add_space(15.0);
+
                                     let episodes = match app.client.get_episodes(id) {
                                         FetchResult::Loading => {
                                             ui.label("Loading..");
@@ -135,9 +140,9 @@ impl Page for Show {
                                     };
 
                                     egui::Grid::new("episodes")
-                                        .num_columns(4)
-                                        .max_col_width((ui.available_width() - 45.0) / 4.0)
-                                        .spacing(Vec2::splat(15.0))
+                                        .num_columns(3)
+                                        .max_col_width((ui.available_width() - 30.0) / 3.0)
+                                        .spacing(Vec2::splat(25.0))
                                         .show(ui, |ui| {
                                             for (index, episode) in episodes
                                                 .iter()
@@ -149,21 +154,25 @@ impl Page for Show {
                                                 let wrapper = egui::Frame::none()
                                                     .show(ui, |ui| {
                                                         ui.vertical(|ui| {
-                                                            if episode.images.is_empty() {
-                                                                ui.label("No image found");
+                                                            let banner_url = if let Some(image) =
+                                                                episode.images.first()
+                                                            {
+                                                                image.url.clone()
+                                                            } else {
+                                                                show.images
+                                                                    .iter()
+                                                                    .find(|image| {
+                                                                        image.cover_type == "fanart"
+                                                                    })
+                                                                    .unwrap()
+                                                                    .remote_url
+                                                                    .clone()
+                                                                    .unwrap()
+                                                            };
 
-                                                                return;
-                                                            }
-
-                                                            if let Some(img) =
-                                                                app.network_image_cache.fetch_image(
-                                                                    episode
-                                                                        .images
-                                                                        .first()
-                                                                        .unwrap()
-                                                                        .url
-                                                                        .clone(),
-                                                                )
+                                                            if let Some(img) = app
+                                                                .network_image_cache
+                                                                .fetch_image(banner_url)
                                                             {
                                                                 img.show_max_size(
                                                                     ui,
@@ -181,11 +190,30 @@ impl Page for Show {
                                                                     Sense::click(),
                                                                 );
                                                             }
-                                                            ui.label(&episode.title);
-                                                            ui.label(format!(
-                                                                "Episode {}",
-                                                                episode.episode_number
-                                                            ));
+                                                            ui.spacing_mut().item_spacing.y = 5.0;
+
+                                                            ui.label(
+                                                                RichText::new(&episode.title)
+                                                                    .size(16.0)
+                                                                    .text_style(TextStyle::Name(
+                                                                        "SemiBold".into(),
+                                                                    )),
+                                                            );
+
+                                                            let has_aired = if chrono::DateTime::parse_from_rfc3339(episode.air_date_utc.as_ref().unwrap().as_str()).unwrap() < chrono::Utc::now() {
+                                                                ""
+                                                            } else {
+                                                                " (not aired yet)"
+                                                            };
+                                                            ui.label(
+                                                                RichText::new(format!(
+                                                                    "Episode {}{}",
+                                                                    episode.episode_number,
+                                                                    // has not aired yet
+                                                                    has_aired
+                                                                ))
+                                                                .size(14.0),
+                                                            );
                                                         });
                                                     })
                                                     .response
@@ -195,7 +223,7 @@ impl Page for Show {
                                                     app.navigate(Pages::Episode { id: episode.id })
                                                 }
 
-                                                if (index + 1) % 4 == 0 {
+                                                if (index + 1) % 3 == 0 {
                                                     ui.end_row();
                                                 }
                                             }

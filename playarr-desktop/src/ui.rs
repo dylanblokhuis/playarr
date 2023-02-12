@@ -361,6 +361,14 @@ fn configure_text_styles(ctx: &egui::Context) {
             TextStyle::Monospace,
             FontId::new(16.0, FontFamily::Proportional),
         ),
+        (
+            TextStyle::Name("SemiBold".into()),
+            FontId::new(16.0, FontFamily::Name("Inter-SemiBold".into())),
+        ),
+        (
+            TextStyle::Name("Bold".into()),
+            FontId::new(16.0, FontFamily::Name("Inter-Bold".into())),
+        ),
     ]
     .into();
 
