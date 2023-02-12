@@ -301,7 +301,6 @@ fn main() {
             Event::LoopDestroyed => {
                 egui_glow.destroy();
                 *control_flow = ControlFlow::Exit;
-                return;
             }
             _ => (),
         }

@@ -111,7 +111,7 @@ impl Page for Episode {
                                             app.config.read().unwrap().server_address,
                                             episode.id
                                         );
-                                        println!("play episode: {}", watch_url);
+                                        println!("play episode: {watch_url}");
                                         mpv.playlist_load_files(&[(
                                             &watch_url,
                                             FileState::AppendPlay,
