@@ -43,8 +43,8 @@ jobs:
       - name: Install build deps
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get update -y
-          sudo apt install -y mpv libmpv-dev
+          DEBIAN_FRONTEND=unstable sudo apt-get update -y
+          DEBIAN_FRONTEND=unstable sudo apt install -y mpv libmpv-dev
 
       # generic
       - name: Build
