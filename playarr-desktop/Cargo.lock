@@ -1140,9 +1140,9 @@ dependencies = [
 
 [[package]]
 name = "glutin"
-version = "0.30.5"
+version = "0.30.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8bdbc089506fecf7466c194c806931300c6a1d4f578e88cc215a7726f998dfb"
+checksum = "68dc39a51f661324ea93bf87066d62ee6e83439c4260332695478186ec318cac"
 dependencies = [
  "bitflags",
  "cfg_aliases",
@@ -1505,7 +1505,7 @@ dependencies = [
 [[package]]
 name = "libmpv"
 version = "3.0.7"
-source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#838556fe39990b4a96fc43951c28531ef0647f41"
+source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#b25901c2cc3243a1ce6d5fa97ad3c1ea9b1d4c48"
 dependencies = [
  "libmpv-sys",
 ]
@@ -1513,7 +1513,7 @@ dependencies = [
 [[package]]
 name = "libmpv-sys"
 version = "4.1.0"
-source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#838556fe39990b4a96fc43951c28531ef0647f41"
+source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#b25901c2cc3243a1ce6d5fa97ad3c1ea9b1d4c48"
 dependencies = [
  "pkg-config",
  "reqwest",
