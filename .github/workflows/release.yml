@@ -38,9 +38,28 @@ jobs:
         run: |
           brew update
           brew install mpv
+        
+      # ubuntu
+      - name: Meson
+        uses: BSFishy/meson-build@v1.0.3
+        if: matrix.os == 'ubuntu-latest'
 
+      - name: Setup Ninja
+        uses: ashutoshvarma/setup-ninja@master
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          # ninja version to download. Default: 1.10.0
+          version: 1.10.0
+
+      - name: Test build deps
+        run: |
+          meson -v
+          ninja --version
+
+      # generic
       - name: Build
         run:  cd playarr-desktop && cargo build --release --locked
+        
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
