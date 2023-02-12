@@ -1505,7 +1505,7 @@ dependencies = [
 [[package]]
 name = "libmpv"
 version = "3.0.7"
-source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#b92446fa494e64d2f8ec02c192122e85e1841d89"
+source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#d6dc8bfad5661221a4eec3409e6188b243482d79"
 dependencies = [
  "libmpv-sys",
 ]
@@ -1513,7 +1513,7 @@ dependencies = [
 [[package]]
 name = "libmpv-sys"
 version = "4.1.0"
-source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#b92446fa494e64d2f8ec02c192122e85e1841d89"
+source = "git+https://github.com/dylanblokhuis/libmpv-rs.git#d6dc8bfad5661221a4eec3409e6188b243482d79"
 dependencies = [
  "pkg-config",
  "reqwest",
