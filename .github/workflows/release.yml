@@ -39,23 +39,6 @@ jobs:
           brew update
           brew install mpv
 
-      - name: Install deb keys
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt install -y wget mpv
-          mpv -v
-          wget https://www.deb-multimedia.org/pool/main/d/deb-multimedia-keyring/deb-multimedia-keyring_2016.8.1_all.deb
-          sudo dpkg -i deb-multimedia-keyring_2016.8.1_all.deb
-
-      - name: add custom deb repository and install new version of mpv
-        uses: myci-actions/add-deb-repo@10
-        if: matrix.os == 'ubuntu-latest'
-        with:
-          repo: deb https://www.deb-multimedia.org bullseye main non-free
-          repo-name: multimedia
-          install: mpv
-          perform-update: true
-
       - name: Build
         run:  cd playarr-desktop && cargo build --release --locked
       - name: Upload binaries to release
