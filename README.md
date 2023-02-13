@@ -1,5 +1,5 @@
 # Playarr
-<img src="https://img.shields.io/github/v/release/dylanblokhuis/playarr" /> <br /><br />
+[<img src="https://img.shields.io/github/v/release/dylanblokhuis/playarr" /> <br /><br />](https://github.com/dylanblokhuis/playarr/releases)
 Watch all your media from [Radarr](https://github.com/Radarr/Radarr) and [Sonarr](https://github.com/Sonarr/Sonarr) 
 
 ## Server (docker)
