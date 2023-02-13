@@ -37,7 +37,6 @@ jobs:
       - name: Install MPV
         if: matrix.os == 'macos-12'
         run: |
-          brew update
           brew install mpv
         
       # ubuntu
