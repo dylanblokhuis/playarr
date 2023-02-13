@@ -187,10 +187,13 @@ fn main() {
     let mut render_context =
         RenderContext::new(unsafe { mpv.ctx.as_mut() }, &gl_window, get_proc_addr)
             .expect("Failed creating render context");
+
     let event_proxy = event_loop.create_proxy();
     render_context.set_update_callback(move || {
         event_proxy.send_event(UserEvent::RedrawRequested).unwrap();
     });
+
+    let mut render_context = Some(render_context);
 
     let mut app = ui::App::new(&egui_glow.egui_ctx);
     let mut ev_ctx = mpv.create_event_context();
@@ -248,6 +251,8 @@ fn main() {
                 let size = gl_window.window().inner_size();
                 // draw things behind egui here
                 render_context
+                    .as_mut()
+                    .unwrap()
                     .render(size.width as i32, size.height as i32)
                     .expect("Failed to draw on glutin window");
                 egui_glow.paint(gl_window.window());
@@ -282,7 +287,7 @@ fn main() {
                 }
             }
             Event::UserEvent(UserEvent::RedrawRequested) => {
-                render_context.update();
+                render_context.as_ref().unwrap().update();
                 gl_window.window().request_redraw();
             }
             Event::UserEvent(UserEvent::MpvEventAvailable) => match ev_ctx.wait_event(0.0) {
@@ -299,6 +304,7 @@ fn main() {
                 }
             },
             Event::LoopDestroyed => {
+                render_context.take();
                 egui_glow.destroy();
                 *control_flow = ControlFlow::Exit;
             }
