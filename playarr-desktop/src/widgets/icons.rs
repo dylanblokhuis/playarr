@@ -51,6 +51,20 @@ lazy_static! {
             egui_extras::image::FitTo::Size(20, 20)
         )
         .unwrap();
+    pub static ref MAXIMIZE_ICON: RetainedImage =
+        egui_extras::RetainedImage::from_svg_bytes_with_size(
+            "maximize.svg",
+            include_bytes!("../assets/icons/maximize.svg"),
+            egui_extras::image::FitTo::Size(20, 20)
+        )
+        .unwrap();
+    pub static ref MINIMIZE_ICON: RetainedImage =
+        egui_extras::RetainedImage::from_svg_bytes_with_size(
+            "minimize.svg",
+            include_bytes!("../assets/icons/minimize.svg"),
+            egui_extras::image::FitTo::Size(20, 20)
+        )
+        .unwrap();
 }
 
 pub fn icon(ui: &mut Ui, icon: &RetainedImage) -> Response {

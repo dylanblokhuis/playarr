@@ -164,9 +164,10 @@ unsafe extern "C" fn get_proc_addr(ctx: *mut c_void, name: *const c_char) -> *mu
 }
 
 #[derive(Debug)]
-enum UserEvent {
+pub enum UserEvent {
     RedrawRequested,
     MpvEventAvailable,
+    ToggleFullscreen,
 }
 
 fn main() {
@@ -192,10 +193,11 @@ fn main() {
     render_context.set_update_callback(move || {
         event_proxy.send_event(UserEvent::RedrawRequested).unwrap();
     });
-
     let mut render_context = Some(render_context);
 
-    let mut app = ui::App::new(&egui_glow.egui_ctx);
+    let event_proxy = event_loop.create_proxy();
+    let mut app = ui::App::new(&egui_glow.egui_ctx, event_proxy);
+
     let mut ev_ctx = mpv.create_event_context();
     ev_ctx
         .observe_property("time-pos", Format::Double, 0)
@@ -303,6 +305,20 @@ fn main() {
                     *control_flow = ControlFlow::Wait;
                 }
             },
+            Event::UserEvent(UserEvent::ToggleFullscreen) => {
+                if gl_window.window().fullscreen().is_some() {
+                    gl_window.window().set_fullscreen(None);
+                    app.state.is_fullscreen = false;
+                    return;
+                }
+
+                gl_window
+                    .window()
+                    .set_fullscreen(Some(winit::window::Fullscreen::Borderless(
+                        gl_window.window().current_monitor(),
+                    )));
+                app.state.is_fullscreen = true;
+            }
             Event::LoopDestroyed => {
                 render_context.take();
                 egui_glow.destroy();

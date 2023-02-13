@@ -42,7 +42,7 @@ impl Pages {
                 season: *season,
             }),
             Pages::Episode { id } => Box::new(Episode { id: *id }),
-            Pages::Player => Box::new(Player),
+            Pages::Player => Box::<Player>::default(),
         }
     }
 }

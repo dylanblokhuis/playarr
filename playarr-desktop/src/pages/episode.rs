@@ -112,6 +112,7 @@ impl Page for Episode {
                                             episode.id
                                         );
                                         println!("play episode: {watch_url}");
+                                        app.navigate(Pages::Player);
                                         mpv.playlist_load_files(&[(
                                             &watch_url,
                                             FileState::AppendPlay,

@@ -11,9 +11,11 @@ use libmpv::{Mpv, MpvNode};
 use serde::{Deserialize, Serialize};
 use tokio::runtime::Builder;
 use winit::event::MouseScrollDelta;
+use winit::event_loop::EventLoopProxy;
 
 use crate::pages::{self, Page, Pages};
 use crate::server::{Client, NetworkCache, NetworkImageCache};
+use crate::UserEvent;
 
 #[derive(Debug)]
 pub struct MpvProperties {
@@ -40,7 +42,8 @@ pub struct AppState {
     page: Pages,
     page_state: Box<dyn Page>,
     pub timestamp_last_mouse_movement: Instant,
-    pub prev_seek: f64,
+    pub timestamp_last_body_click: Instant,
+    pub is_fullscreen: bool,
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -54,10 +57,11 @@ pub struct App {
     pub client: Client,
     pub network_image_cache: NetworkImageCache,
     pub config: Arc<RwLock<Config>>,
+    pub el_proxy: EventLoopProxy<UserEvent>,
 }
 
 impl App {
-    pub fn new(ctx: &egui::Context) -> Self {
+    pub fn new(ctx: &egui::Context, el_proxy: EventLoopProxy<UserEvent>) -> Self {
         // setup egui styles
         configure_text_styles(ctx);
         configure_widgets(ctx);
@@ -72,9 +76,9 @@ impl App {
             }
         };
 
-        let mut page = Pages::Onboarding;
-        if !config.server_address.is_empty() {
-            page = Pages::Overview;
+        let mut page = Pages::Overview;
+        if config.server_address.is_empty() {
+            page = Pages::Onboarding;
         }
         let page_state = page.get_default_state();
         let config = Arc::new(RwLock::new(config));
@@ -84,12 +88,14 @@ impl App {
                 page,
                 page_state,
                 timestamp_last_mouse_movement: std::time::Instant::now(),
-                prev_seek: 0.0,
+                timestamp_last_body_click: std::time::Instant::now(),
+                is_fullscreen: false,
             },
             properties: MpvProperties::default(),
             client: Client::new(config.clone(), network_cache.clone()),
             network_image_cache: NetworkImageCache::new(network_cache, ctx.clone()),
             config,
+            el_proxy,
         }
     }
 
@@ -129,6 +135,13 @@ impl App {
 
     pub fn on_body_click(&mut self, mpv: &Mpv) {
         if self.state.page == Pages::Player {
+            if self.state.timestamp_last_body_click.elapsed().as_millis() < 200 {
+                self.el_proxy
+                    .send_event(UserEvent::ToggleFullscreen)
+                    .unwrap();
+            }
+
+            self.state.timestamp_last_body_click = std::time::Instant::now();
             mpv.cycle_property("pause", true).unwrap();
         }
     }
@@ -160,6 +173,13 @@ impl App {
                 }
                 VirtualKeyCode::Space => {
                     mpv.cycle_property("pause", true).unwrap();
+                }
+                VirtualKeyCode::Escape => {
+                    if self.state.is_fullscreen {
+                        self.el_proxy
+                            .send_event(UserEvent::ToggleFullscreen)
+                            .unwrap();
+                    }
                 }
                 _ => {}
             }
