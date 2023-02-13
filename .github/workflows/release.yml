@@ -37,7 +37,6 @@ jobs:
       - name: Install MPV
         if: matrix.os == 'macos-12'
         run: |
-          brew update
           brew install mpv
         
       # ubuntu
@@ -47,8 +46,8 @@ jobs:
           sudo add-apt-repository ppa:savoury1/ffmpeg4
           sudo add-apt-repository ppa:savoury1/ffmpeg5
           sudo add-apt-repository ppa:savoury1/mpv
-          sudo apt-get update
-          sudo apt-get install libmpv2 mpv
+          sudo apt-get update -y
+          sudo apt-get install -y libmpv-dev mpv
 
       # generic
       - name: Build
