@@ -27,7 +27,8 @@ jobs:
         with:
           toolchain: stable
           override: true
-        
+      - uses: Swatinem/rust-cache@v2
+
       # windows specific
       - uses: seanmiddleditch/gha-setup-vsdevenv@master
         if: matrix.os == 'windows-2022' 
@@ -43,8 +44,11 @@ jobs:
       - name: Install build deps
         if: matrix.os == 'ubuntu-latest'
         run: |
-          DEBIAN_FRONTEND=unstable sudo apt-get update -y
-          DEBIAN_FRONTEND=unstable sudo apt install -y mpv libmpv-dev
+          sudo add-apt-repository ppa:savoury1/ffmpeg4
+          sudo add-apt-repository ppa:savoury1/ffmpeg5
+          sudo add-apt-repository ppa:savoury1/mpv
+          sudo apt-get update
+          sudo apt-get install libmpv2 mpv
 
       # generic
       - name: Build
