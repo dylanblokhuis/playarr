@@ -35,6 +35,7 @@ impl Page for Onboarding {
                 );
                 ui.add_space(10.0);
 
+                app.config.write().unwrap().server_address = server_address.clone();
                 if server_address.is_empty() {
                     return;
                 }
@@ -58,8 +59,6 @@ impl Page for Onboarding {
 
                     ui.label(RichText::new(error).color(Color32::from_rgb(220, 38, 38)));
                 }
-
-                app.config.write().unwrap().server_address = server_address;
 
                 if app.get_page_state_mut::<Self>().try_request {
                     match app.client.get_all_series() {
