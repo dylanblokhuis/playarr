@@ -1,7 +1,5 @@
-use std::{ops::Add, sync::Arc};
+use egui::{style::Margin, Frame, Sense, Ui, Vec2};
 
-use egui::{epaint::text::TextWrapping, style::Margin, Frame, Label, RichText, Sense, Ui, Vec2};
-use egui_extras::{Size, Strip, StripBuilder};
 use libmpv::Mpv;
 
 use crate::{
