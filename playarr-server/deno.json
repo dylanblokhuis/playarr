@@ -3,7 +3,7 @@
     "std/": "https://deno.land/std@0.174.0/",
     "oak": "https://deno.land/x/oak@v11.1.0/mod.ts",
     "zoic": "https://deno.land/x/zoic@v1.0.5/zoic/zoic.ts",
-    "dotenv": "https://deno.land/std/dotenv/mod.ts"
+    "dotenv": "https://deno.land/std@0.174.0/dotenv/mod.ts"
   },
   "tasks": {
     "dev": "deno run --allow-net --allow-read --watch --allow-env --allow-ffi --unstable app.ts",
