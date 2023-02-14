@@ -2,15 +2,12 @@
   "imports": {
     "std/": "https://deno.land/std@0.174.0/",
     "oak": "https://deno.land/x/oak@v11.1.0/mod.ts",
-    "sqlite": "https://deno.land/x/sqlite3@0.8.0/mod.ts",
     "zoic": "https://deno.land/x/zoic@v1.0.5/zoic/zoic.ts",
-    "kysely": "npm:kysely@0.23.4"
+    "dotenv": "https://deno.land/std/dotenv/mod.ts"
   },
   "tasks": {
     "dev": "deno run --allow-net --allow-read --watch --allow-env --allow-ffi --unstable app.ts",
     "start": "deno run --allow-net --allow-read --allow-env --allow-ffi --unstable app.ts",
-    "migrate": "deno run --allow-env --allow-read --allow-ffi --unstable tasks/migrate.ts",
-    "create_migration": "deno run --allow-read --allow-write tasks/create_migration.ts",
     "create_package": "deno run --allow-read --allow-write --allow-run tasks/create_package.ts"
   }
 }

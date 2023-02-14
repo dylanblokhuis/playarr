@@ -5,15 +5,6 @@ export async function someFunction() {
 }
 `;
 
-const tablesTemplate = `/* This file has been generated with "deno task create_package" */
-/* Do not forget to add me to the Database type */
-
-import {Generated, ColumnType} from "kysely";
-
-export interface SomeTable {
-	// ...
-}
-`;
 
 const routerTemplate = `/* This file has been generated with "deno task create_package" */
 /* Do not forget to add me to the routers in app.ts */
@@ -36,13 +27,10 @@ async function createPackage(name: string) {
 
 	const routerFile = `${path}/router.ts`;
 	const repositoryFile = `${path}/repository.ts`;
-	const tablesFile = `${path}/db/tables.ts`;
 
 	await Deno.mkdir(path);
-	await Deno.mkdir(`${path}/db`);
 	await Deno.writeTextFile(routerFile, routerTemplate);
 	await Deno.writeTextFile(repositoryFile, repositoryTemplate);
-	await Deno.writeTextFile(tablesFile, tablesTemplate);
 }
 
 
