@@ -3,9 +3,8 @@ FROM lukechannings/deno:v1.30.3 as deno-arm64
 FROM denoland/deno:1.30.3 as deno-amd64
 
 FROM deno-${TARGETARCH}
-EXPOSE 8000
 
-RUN apt update && apt install -y
+EXPOSE 8000
 
 WORKDIR /app
 
